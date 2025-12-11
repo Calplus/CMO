@@ -1,4 +1,4 @@
-package main.java.scorecalc;
+package main.java.databaseupdater;
 
 public class calcPlayerOverallScore {
     public static final int [][] leagueScore = {

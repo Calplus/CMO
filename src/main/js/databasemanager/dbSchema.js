@@ -25,7 +25,13 @@ function ensureColumn(db, tableName, columnName, columnType) {
     });
 }
 
-function createOrUpdateTable(db, tableName, createSQL, columnsToEnsure) {
+function createOrUpdateTable(db, tableName, columns, indexColumns) {
+    if (!columns || columns.length === 0) {
+        console.error(`No columns specified for table ${tableName}.`);
+        return;
+    }
+    const columnsDef = columns.map(col => `${col.name} ${col.type}`).join(',\n    ');
+    const createSQL = `(${columnsDef})`;
     db.run(`CREATE TABLE IF NOT EXISTS ${tableName} ${createSQL}`, (err) => {
 
         if (err) console.error(`Error creating table ${tableName}:`, err.message);
@@ -33,23 +39,19 @@ function createOrUpdateTable(db, tableName, createSQL, columnsToEnsure) {
         else console.log(`Table '${tableName}' ensured.`);
 
         // Ensure columns exist (for updates)
-        if (columnsToEnsure && columnsToEnsure.length > 0) {
-            columnsToEnsure.forEach(col => {
-                ensureColumn(db, tableName, col.name, col.type);
+        columns.forEach(col => {
+            ensureColumn(db, tableName, col.name, col.type);
+        });
+        // Create indexes on specified columns
+        if (indexColumns && indexColumns.length > 0) {
+            indexColumns.forEach(col => {
+                const indexName = `idx_${tableName}_${col}`;
+                db.run(`CREATE INDEX IF NOT EXISTS ${indexName} ON ${tableName}(${col})`, (err) => {
+                    if (err) console.error(`Error creating index on ${tableName}.${col}:`, err.message);
+                    else console.log(`Index '${indexName}' created on '${tableName}(${col})'.`);
+                });
             });
         }
-    });
-}
-
-// Create indexes on specified columns for a table
-function createIndexes(db, tableName, columns) {
-    if (!columns || columns.length === 0) return;
-    columns.forEach(col => {
-        const indexName = `idx_${tableName}_${col}`;
-        db.run(`CREATE INDEX IF NOT EXISTS ${indexName} ON ${tableName}(${col})`, (err) => {
-            if (err) console.error(`Error creating index on ${tableName}.${col}:`, err.message);
-            else console.log(`Index '${indexName}' created on '${tableName}(${col})'.`);
-        });
     });
 }
 
@@ -78,60 +80,14 @@ function createDatabase(dbName) {
 }
 
 function tableInfo(db) {
-    // Table 1: A1_ClanInfo
+    // Table 1: A01_ClanInfo
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}
     // DB format: New rows daily
     // DB Ordering: Date logged Ascending
 
     createOrUpdateTable(
         db,
-        'A1_ClanInfo',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            dateLogged TEXT,
-            season TEXT,
-
-            -- Clan Info
-            name TEXT,
-            type TEXT,
-            description TEXT,
-            memberCount INTEGER
-            clanLevel INTEGER,
-            clanPoints INTEGER,
-            clanBbPoints INTEGER,
-            locationName TEXT,
-            isFamilyFriendly BOOLEAN,
-            chatLanguage TEXT,
-
-            -- Entrance Requirements
-            requiredTrophies INTEGER,
-            requiredBbTrophies INTEGER,
-            requiredThLevel INTEGER,
-
-            -- Clan War Info
-            warFrequency TEXT,
-            isWarLogPublic BOOLEAN,
-            warWinStreak INTEGER,
-            warWins INTEGER,
-            warTies INTEGER,
-            warLosses INTEGER,
-            CWLLeagueName TEXT,
-
-            -- Clan Capital Info
-            capitalHallLevel INTEGER,
-            capitalPoints INTEGER,
-
-            -- Clan Capital Districts
-            lvlCapitalPeak INTEGER,
-            lvlBarbarianCamp INTEGER,
-            lvlWizardValley INTEGER,
-            lvlBalloonLagoon INTEGER,
-            lvlBuildersWorkshop INTEGER,
-            lvlDragonCliffs INTEGER,
-            lvlGolemQuarry INTEGER,
-            lvlSkeletonPark INTEGER,
-            lvlGoblinMines INTEGER
-        )`,
+        'A01_ClanInfo',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'dateLogged', type: 'TEXT' },
@@ -177,254 +133,18 @@ function tableInfo(db) {
             { name: 'lvlGolemQuarry', type: 'INTEGER' },
             { name: 'lvlSkeletonPark', type: 'INTEGER' },
             { name: 'lvlGoblinMines', type: 'INTEGER' }
-        ]
+        ],
+        ['season']
     );
 
-    // Table 2: A2_ClanMembers
+    // Table 2: A02_ClanMembers
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/members || https://api.clashofclans.com/v1/players/%23{playerTag}
     // DB format: New rows only for new members; old members updated. Updated when number of members change, or every day, whichever is sooner.
     // DB Ordering: Date of first join
 
     createOrUpdateTable(
         db,
-        'A2_ClanMembers',
-        `(
-            -- Main player info
-            playerTag TEXT PRIMARY KEY,
-            name TEXT,
-
-            lastUpdated TEXT,
-            dateJoin TEXT,
-            dateLeft TEXT,
-            lastActive TEXT,
-
-            thLevel INTEGER,
-            bhLevel INTEGER,
-            xpLevel INTEGER,
-
-            trophies INTEGER,
-            bestTrophies INTEGER,
-            legendTrophies INTEGER,
-            bbTrophies INTEGER,
-            bestBbTrophies INTEGER,
-
-            warStars INTEGER,
-            attackWins INTEGER,
-            defenseWins INTEGER,
-
-            clanRole TEXT,
-            warPreference BOOLEAN,
-            donations INTEGER,
-            donationsReceived INTEGER,
-            clanCapitalContributions INTEGER,
-
-            legacyLeagueName TEXT,
-            leagueInt INTEGER,
-            bbLeagueName TEXT,
-
-            -- Achievements
-            achievementBiggerCoffers INTEGER,
-            achievementGetThoseGoblins INTEGER,
-            achievementBiggerBetter INTEGER,
-            achievementNiceAndTidy INTEGER,
-            achievementDiscoverNewTroops INTEGER,
-            achievementGoldGrab INTEGER,
-            achievementElixirEscapade INTEGER,
-            achievementSweetVictory INTEGER,
-            achievementEmpireBuilder INTEGER,
-            achievementWallBuster INTEGER,
-            achievementHumiliator INTEGER,
-            achievementUnionBuster INTEGER,
-            achievementConqueror INTEGER,
-            achievementUnbreakable INTEGER,
-            achievementFriendInNeed INTEGER,
-            achievementMortarMauler INTEGER,
-            achievementHeroicHeist INTEGER,
-            achievementLeagueAllStar INTEGER,
-            achievementXBowExterminator INTEGER,
-            achievementFirefighter INTEGER,
-            achievementWarHero INTEGER,
-            achievementClanWarWealth INTEGER,
-            achievementAntiArtillery INTEGER,
-            achievementSharingIsCaring INTEGER,
-            achievementKeepYourAccountSafe INTEGER,
-            achievementMasterEngineering INTEGER,
-            achievementNextGenerationModel INTEGER,
-            achievementUnBuildIt INTEGER,
-            achievementChampionBuilder INTEGER,
-            achievementHighGear INTEGER,
-            achievementHiddenTreasures INTEGER,
-            achievementGamesChampion INTEGER,
-            achievementDragonSlayer INTEGER,
-            achievementWarLeagueLegend INTEGER,
-            achievementWellSeasoned INTEGER,
-            achievementShatteredAndScattered INTEGER,
-            achievementNotSoEasyThisTime INTEGER,
-            achievementBustThis INTEGER,
-            achievementSuperbWork INTEGER,
-            achievementSiegeSharer INTEGER,
-            achievementAggressiveCapitalism INTEGER,
-            achievementMostValuableClanmate INTEGER,
-            achievementCounterspell INTEGER,
-            achievementMonolithMasher INTEGER,
-            achievementUngratefulChild INTEGER,
-            achievementSupercharger INTEGER,
-            achievementMultiArcherTowerTerminator INTEGER,
-            achievementRicochetCannonCrusher INTEGER,
-            achievementFirespitterFinisher INTEGER,
-            achievementMultiGearTowerTrampler INTEGER,
-            achievementCraftingConnoisseur INTEGER,
-            achievementCraftersNightmare INTEGER,
-            achievementLeagueFollower INTEGER,
-
-            -- Levels (Elixir Troops)
-            lvlTroopElixirBarbarian INTEGER,
-            lvlTroopElixirArcher INTEGER,
-            lvlTroopElixirGiant INTEGER,
-            lvlTroopElixirGoblin INTEGER,
-            lvlTroopElixirWallBreaker INTEGER,
-            lvlTroopElixirBalloon INTEGER,
-            lvlTroopElixirWizard INTEGER,
-            lvlTroopElixirHealer INTEGER,
-            lvlTroopElixirDragon INTEGER,
-            lvlTroopElixirPEKKA INTEGER,
-            lvlTroopElixirBabyDragon INTEGER,
-            lvlTroopElixirMiner INTEGER,
-            lvlTroopElixirElectroDragon INTEGER,
-            lvlTroopElixirYeti INTEGER,
-            lvlTroopElixirDragonRider INTEGER,
-            lvlTroopElixirElectroTitan INTEGER,
-            lvlTroopElixirRootRider INTEGER,
-            lvlTroopElixirThrower INTEGER,
-
-            -- Levels (Dark Elixir Troops)
-            lvlTroopDarkElixirMinion INTEGER,
-            lvlTroopDarkElixirHogRider INTEGER,
-            lvlTroopDarkElixirValkyrie INTEGER,
-            lvlTroopDarkElixirGolem INTEGER,
-            lvlTroopDarkElixirWitch INTEGER,
-            lvlTroopDarkElixirLavaHound INTEGER,
-            lvlTroopDarkElixirBowler INTEGER,
-            lvlTroopDarkElixirIceGolem INTEGER,
-            lvlTroopDarkElixirHeadhunter INTEGER,
-            lvlTroopDarkElixirApprenticeWarden INTEGER,
-            lvlTroopDarkElixirDruid INTEGER,
-            lvlTroopDarkElixirFurnace INTEGER,
-
-            -- Levels (Spells)
-            lvlSpellLightning INTEGER,
-            lvlSpellHealing INTEGER,
-            lvlSpellRage INTEGER,
-            lvlSpellJump INTEGER,
-            lvlSpellFreeze INTEGER,
-            lvlSpellClone INTEGER,
-            lvlSpellInvisibility INTEGER,
-            lvlSpellRecall INTEGER,
-            lvlSpellRevive INTEGER,
-
-            -- Levels (Dark Spells)
-            lvlDarkSpellPoison INTEGER,
-            lvlDarkSpellEarthquake INTEGER,
-            lvlDarkSpellHaste INTEGER,
-            lvlDarkSpellSkeleton INTEGER,
-            lvlDarkSpellBat INTEGER,
-            lvlDarkSpellOvergrowth INTEGER,
-            lvlDarkSpellIceBlock INTEGER,
-
-            -- Levels (Builder Base Troops)
-            lvlTroopBuilderBaseRagedBarbarian INTEGER,
-            lvlTroopBuilderBaseSneakyArcher INTEGER,
-            lvlTroopBuilderBaseBoxerGiant INTEGER,
-            lvlTroopBuilderBaseBetaMinion INTEGER,
-            lvlTroopBuilderBaseBomber INTEGER,
-            lvlTroopBuilderBaseBabyDragon INTEGER,
-            lvlTroopBuilderBaseCannonCart INTEGER,
-            lvlTroopBuilderBaseNightWitch INTEGER,
-            lvlTroopBuilderBaseDropShip INTEGER,
-            lvlTroopBuilderBasePowerPekka INTEGER,
-            lvlTroopBuilderBaseHogGlider INTEGER,
-            lvlTroopBuilderBaseElectrofireWizard INTEGER,
-
-            -- Levels (Siege Machines)
-            lvlSiegeWallWrecker INTEGER,
-            lvlSiegeBattleBlimp INTEGER,
-            lvlSiegeStoneSlammer INTEGER,
-            lvlSiegeSiegeBarracks INTEGER,
-            lvlSiegeLogLauncher INTEGER,
-            lvlSiegeFlameFlinger INTEGER,
-            lvlSiegeBattleDrill INTEGER,
-            lvlSiegeTroopLauncher INTEGER,
-
-            -- Levels (Pets)
-            lvlPetLASSI INTEGER,
-            lvlPetMightyYak INTEGER,
-            lvlPetElectroOwl INTEGER,
-            lvlPetUnicorn INTEGER,
-            lvlPetPhoenix INTEGER,
-            lvlPetPoisonLizard INTEGER,
-            lvlPetDiggy INTEGER,
-            lvlPetFrosty INTEGER,
-            lvlPetSpiritFox INTEGER,
-            lvlPetAngryJelly INTEGER,
-            lvlPetSneezy INTEGER,
-
-            -- Levels (Heroes)
-            lvlHeroBarbarianKing INTEGER,
-            lvlHeroArcherQueen INTEGER,
-            lvlHeroMinionPrince INTEGER,
-            lvlHeroGrandWarden INTEGER,
-            lvlHeroRoyalChampion INTEGER,
-            
-            lvlHeroBattleMachine INTEGER,
-            lvlHeroBattleCopter INTEGER,
-
-            -- Levels (Hero Equipment)
-
-                --- Barbarian King Equipment
-                lvlHeroEquipmentBarbarianPuppet INTEGER,
-                lvlHeroEquipmentRageVial INTEGER,
-                lvlHeroEquipmentEarthquakeBoots INTEGER,
-                lvlHeroEquipmentVampstache INTEGER,
-                lvlHeroEquipmentGiantGauntlet INTEGER,
-                lvlHeroEquipmentSpikyBall INTEGER,
-                lvlHeroEquipmentSnakeBracelet INTEGER,
-                lvlHeroEquipmentStickHorse INTEGER,
-
-                --- Archer Queen Equipment
-                lvlHeroEquipmentArcherPuppet INTEGER,
-                lvlHeroEquipmentInvisibilityVial INTEGER,
-                lvlHeroEquipmentGiantArrow INTEGER,
-                lvlHeroEquipmentHealerPuppet INTEGER,
-                lvlHeroEquipmentFrozenArrow INTEGER,
-                lvlHeroEquipmentMagicMirror INTEGER,
-                lvlHeroEquipmentActionFigure INTEGER,
-            
-                --- Minion Prince Equipment
-                lvlHeroEquipmentHenchmenPuppet INTEGER,
-                lvlHeroEquipmentDarkOrb INTEGER,
-                lvlHeroEquipmentMetalPants INTEGER,
-                lvlHeroEquipmentNobleIron INTEGER,
-                lvlHeroEquipmentDarkCrown INTEGER,
-                lvlHeroEquipmentMeteorStaff INTEGER,
-
-                --- Grand Warden Equipment
-                lvlHeroEquipmentEternalTome INTEGER,
-                lvlHeroEquipmentLifeGem INTEGER,
-                lvlHeroEquipmentRageGem INTEGER,
-                lvlHeroEquipmentHealingTome INTEGER,
-                lvlHeroEquipmentFireball INTEGER,
-                lvlHeroEquipmentLavaloonPuppet INTEGER,
-                lvlHeroEquipmentHeroicTorch INTEGER,
-
-                --- Royal Champion Equipment
-                lvlHeroEquipmentRoyalGem INTEGER,
-                lvlHeroEquipmentSeekingShield INTEGER,
-                lvlHeroEquipmentHogRiderPuppet INTEGER,
-                lvlHeroEquipmentHasteVial INTEGER,
-                lvlHeroEquipmentRocketSpear INTEGER,
-                lvlHeroEquipmentElectroBoots INTEGER,
-                lvlHeroEquipmentFrostFlake INTEGER
-        )`,
+        'A02_ClanMembers',
         [
             // Main player info
             { name: 'playerTag', type: 'TEXT PRIMARY KEY' },
@@ -655,51 +375,18 @@ function tableInfo(db) {
             { name: 'lvlHeroEquipmentRocketSpear', type: 'INTEGER' },
             { name: 'lvlHeroEquipmentElectroBoots', type: 'INTEGER' },
             { name: 'lvlHeroEquipmentFrostFlake', type: 'INTEGER' }
-        ]
+        ],
+        ['playerTag']
     );
 
-    // Table 3: A3_CWLWarDetails
-    // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/currentwar/leaguegroup || https://api.clashofclans.com/v1/clanwarleagues/wars/%23{warTag [NOT CLAN TAG!!!]}
+    // Table 3: A03_CWLWarDetails
+    // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/currentwar/leaguegroup || https://api.clashofclans.com/v1/clanwarleagues/wars/%23{warTag [NOT CLAN TAG!!!]}.
     // DB format: Because of API limitations, we will first store the war details. Each row is a war, meaning every day should have 4 wars, and every CWL should have 28 wars.
     // DB Ordering: Season name > war number > war tag
 
     createOrUpdateTable(
         db,
-        'A3_CWLWarDetails',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            dateLogged TEXT,
-
-            -- CWL Season Info
-            season TEXT,
-            seasonWarState TEXT,
-            teamSize INTEGER,
-
-            -- War Info
-            warNum INTEGER,
-            warTag TEXT,
-            warState TEXT,
-            prepStartTime TEXT,
-            startTime TEXT,
-            endTime TEXT,
-
-            -- Clans Info
-            clanTag TEXT,
-            clanName TEXT,
-            clanLevel INTEGER,
-            clanAttacks INTEGER,
-            clanStars INTEGER,
-            clanDestructionPercent REAL,
-
-            opponentTag TEXT,
-            opponentName TEXT,
-            opponentLevel INTEGER,
-            opponentAttacks INTEGER,
-            opponentStars INTEGER,
-            opponentDestructionPercent REAL,
-
-            winningClanTag TEXT
-        )`,
+        'A03_CWLWarDetails',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'dateLogged', type: 'TEXT' },
@@ -733,43 +420,18 @@ function tableInfo(db) {
             { name: 'opponentDestructionPercent', type: 'REAL' },
 
             { name: 'winningClanTag', type: 'TEXT' }
-        ]
+        ],
+        ['season', 'seasonWarState']
     );
 
-    // Table 4: A4_CWLAttackDetails
+    // Table 4: A04_CWLAttackDetails
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/currentwar/leaguegroup || https://api.clashofclans.com/v1/clanwarleagues/wars/%23{warTag [NOT CLAN TAG!!!]}
     // DB format: Because of API limitations, all attacks are stored. Basically, only data for each attack for each war is stored. Data is first obtained from A3_CWLWarDetails.
     // DB Ordering: war tag (based on A3_CWLWarDetails) > Team1 attacker map position then team 2.
 
     createOrUpdateTable(
         db,
-        'A4_CWLAttackDetails',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            dateLogged TEXT,
-            season TEXT,
-            warTag TEXT,
-            clanTag TEXT,
-            opponentTag TEXT,
-
-            -- Player Details
-            attackerTag TEXT,
-            attackerName TEXT,
-            attackerThLevel INTEGER,
-            attackerMapPosition INTEGER,
-
-            -- Opponent Details
-            defenderTag TEXT,
-            defenderName TEXT,
-            defenderThLevel INTEGER,
-            defenderMapPosition INTEGER,
-
-            -- Attack Details
-            stars INTEGER,
-            destructionPercentage INTEGER,
-            order INTEGER,
-            duration INTEGER
-        )`,
+        'A04_CWLAttackDetails',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'dateLogged', type: 'TEXT' },
@@ -793,47 +455,20 @@ function tableInfo(db) {
             // Attack Details
             { name: 'stars', type: 'INTEGER' },
             { name: 'destructionPercentage', type: 'INTEGER' },
-            { name: 'order', type: 'INTEGER' },
+            { name: 'attackOrder', type: 'INTEGER' },
             { name: 'duration', type: 'INTEGER' }
-        ]
+        ],
+        ['season', 'warTag', 'clanTag', 'opponentTag', 'attackerTag']
     );
 
-    // Table 5: A5_ClanWarLog
+    // Table 5: A05_ClanWarLog
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/warlog
     // DB format: Stores high-level overview of war details.
     // DB Ordering: first to last war
 
     createOrUpdateTable(
         db,
-        'A5_ClanWarLog',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            dateLogged TEXT,
-            cwSeason TEXT,
-
-            -- Clan War Info
-            result TEXT,
-            teamsize INTEGER,
-            attacksPerMember INTEGER,
-            battleModifier TEXT,
-            endTime TEXT,
-
-            -- Attacker War Stats
-            clanTag TEXT,
-            clanName TEXT,
-            clanLevel INTEGER,
-            clanAttacks INTEGER,
-            clanStars INTEGER,
-            clanDestructionPercent REAL,
-            clanXPGained INTEGER,
-
-            -- Defender War Stats
-            opponentTag TEXT,
-            opponentName TEXT,
-            opponentLevel INTEGER,
-            opponentStars INTEGER,
-            opponentDestructionPercent REAL
-        )`,
+        'A05_ClanWarLog',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'dateLogged', type: 'TEXT' },
@@ -861,10 +496,11 @@ function tableInfo(db) {
             { name: 'opponentLevel', type: 'INTEGER' },
             { name: 'opponentStars', type: 'INTEGER' },
             { name: 'opponentDestructionPercent', type: 'REAL' }
-        ]
+        ],
+        ['cwSeason', 'result']
     );
 
-    // Table 6: A6_ClanWarAttackDetails
+    // Table 6: A06_ClanWarAttackDetails
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/currentwar
     // DB format: Stores detailed information about each player's attacks in clan wars. Does not account for CWL.
     // DB Ordering: first to last war > attacker map position then defender map position. Indexed via endTime
@@ -874,8 +510,11 @@ function tableInfo(db) {
 
     createOrUpdateTable(
         db,
-        'A6_ClanWarAttackDetails',
+        'A06_ClanWarAttackDetails',
         `(
+
+            <<<DONT USE THIS REMOVE IT>>>
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             dateLogged TEXT,
             cwSeason TEXT,
@@ -895,42 +534,20 @@ function tableInfo(db) {
             { name: 'endTime', type: 'INTEGER PRIMARY KEY' },
             { name: 'dateLogged', type: 'TEXT' },
 
-        ]
+        ],
+        ['xxx']
     );
+
     */
 
-    // Table 7: A7_ClanCapitalLog
+    // Table 7: A07_ClanCapitalLog
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/capitalraidseasons
     // DB format: Stores high-level details of clan capital raids.
     // DB Ordering: first to last raid
     
     createOrUpdateTable(
         db,
-        'A7_ClanCapitalLog',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            dateLogged TEXT,
-
-            -- Raid Identifiers
-            ccSeason TEXT,
-            state TEXT,
-            startTime TEXT,
-            endTime TEXT,
-
-            -- Raid Info
-            raidsCompleted INTEGER,
-            totalAttacks INTEGER,
-            enemyDistrictsDestroyed INTEGER,
-
-            -- Raid Rewards
-            capitalGoldEarned INTEGER,
-            raidMedalsOffensive INTEGER,
-            raidMedalsDefensive INTEGER,
-
-            -- Trophy Info
-            trophyCount INTEGER,
-            clanXp INTEGER
-        )`,
+        'A07_ClanCapitalLog',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'dateLogged', type: 'TEXT' },
@@ -954,43 +571,18 @@ function tableInfo(db) {
             // Trophy Info
             { name: 'trophyCount', type: 'INTEGER' },
             { name: 'clanXp', type: 'INTEGER' }
-        ]
+        ],
+        ['ccSeason', 'state']
     );
 
-    // Table 8: A8_ClanCapitalAttacks
+    // Table 8: A08_ClanCapitalAttacks
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/capitalraidseasons
     // DB format: Stores stats of every member's attacks in weekend raids.
     // DB Ordering: earliest to latest raid > highest resources earned
     
     createOrUpdateTable(
         db,
-        'A8_ClanCapitalAttacks',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ccSeason TEXT,
-            dateLogged TEXT,
-
-            -- Player Info
-            playerTag TEXT,
-            playerName TEXT,
-
-            -- Attacks Used
-            attacksUsed INTEGER,
-            attackLimit INTEGER,
-            bonusAttacksGained INTEGER,
-            attacksUsedScore REAL,
-
-            -- Capital Gold Obtained
-            capitalGoldLooted INTEGER,
-            goldObtainedScore REAL,
-
-            -- Capital Gold Donated
-            mostValuableClanmatePoints INTEGER,
-            increaseFromPrevious INTEGER,
-            goldDonationScore REAL,
-
-            clanCapitalScore REAL
-        )`,
+        'A08_ClanCapitalAttacks',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'ccSeason', type: 'TEXT' },
@@ -1016,32 +608,18 @@ function tableInfo(db) {
             { name: 'goldDonationScore', type: 'REAL' },
 
             { name: 'clanCapitalScore', type: 'REAL' }
-        ]
+        ],
+        ['ccSeason', 'playerTag', 'attacksUsed']
     );
 
-    // Table 9: A9_ClanCapitalClanAttacks
+    // Table 9: A09_ClanCapitalClanAttacks
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/capitalraidseasons
     // DB format: Stores stats of clans attacked.
     // DB Ordering: earliest to latest raid > Earliest to finish
     
     createOrUpdateTable(
         db,
-        'A9_ClanCapitalClanAttacks',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ccSeason TEXT,
-            dateLogged TEXT,
-
-            --  Clan Info
-            clanTag TEXT,
-            clanName TEXT,
-            clanLevel INTEGER,
-
-            -- Clan Raid Stats
-            attackCount INTEGER,
-            districtCount INTEGER,
-            districtsDestroyed INTEGER,
-        )`,
+        'A09_ClanCapitalClanAttacks',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'ccSeason', type: 'TEXT' },
@@ -1056,7 +634,8 @@ function tableInfo(db) {
             { name: 'attackLimit', type: 'INTEGER' },
             { name: 'bonusAttacksGained', type: 'INTEGER' },
             { name: 'capitalGoldLooted', type: 'INTEGER' }
-        ]
+        ],
+        ['ccSeason']
     );
 
     // Table 10: A10_ClanCapitalClanDefenses
@@ -1067,21 +646,6 @@ function tableInfo(db) {
     createOrUpdateTable(
         db,
         'A10_ClanCapitalClanDefenses',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ccSeason TEXT,
-            dateLogged TEXT,
-
-            --  Clan Info
-            clanTag TEXT,
-            clanName TEXT,
-            clanLevel INTEGER,
-
-            -- Clan Raid Stats
-            attackCount INTEGER,
-            districtCount INTEGER,
-            districtsDestroyed INTEGER,
-        )`,
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'ccSeason', type: 'TEXT' },
@@ -1096,57 +660,18 @@ function tableInfo(db) {
             { name: 'attackLimit', type: 'INTEGER' },
             { name: 'bonusAttacksGained', type: 'INTEGER' },
             { name: 'capitalGoldLooted', type: 'INTEGER' }
-        ]
+        ],
+        ['ccSeason']
     );
 
-    // Table 11: B1_PlayerLog
+    // Table 11: B01_PlayerLog
     // Primary database: A2_ClanMembers
     // DB format: Stores history of active players and relevant metrics to calculate the player quality score. runs every week before the ranked league ends (to obtain trophy numbers)
     // DB Ordering: season name > player rank in clan
     
     createOrUpdateTable(
         db,
-        'B1_PlayerLog',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            rankedSeason TEXT,
-            playerTag TEXT,
-
-            -- TH League + Position
-            thLevel INTEGER,
-            leagueInt INTEGER,
-            trophies INTEGER,
-            thLeagueScore REAL,
-
-            -- War Stars
-            warStars INTEGER,
-            warStarsScore REAL,
-
-            -- Hero Levels
-            lvlHeroBarbarianKing INTEGER,
-            lvlHeroArcherQueen INTEGER,
-            lvlHeroMinionPrince INTEGER,
-            lvlHeroGrandWarden INTEGER,
-            lvlHeroRoyalChampion INTEGER,
-            heroLevelsScore REAL,
-
-            -- Lab Levels
-            labUpgrades INTEGER,
-            labUpgradesThMax INTEGER,
-            labLevelsScore REAL,
-
-            -- Pet Levels
-            petUpgrades INTEGER,
-            petUpgradesThMax INTEGER,
-            petLevelsScore REAL,
-
-            -- Equipment Levels
-            equipmentUpgrades INTEGER,
-            equipmentUpgradesThMax INTEGER,
-            equipmentLevelsScore REAL,
-
-            playerQualityScore REAL
-        )`,
+        'B01_PlayerLog',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'rankedSeason', type: 'TEXT' },
@@ -1155,8 +680,9 @@ function tableInfo(db) {
             // TH League + Position
             { name: 'thLevel', type: 'INTEGER' },
             { name: 'leagueInt', type: 'INTEGER' },
-            { name: 'trophies', type: 'INTEGER' },
             { name: 'thLeagueScore', type: 'REAL' },
+            { name: 'trophies', type: 'INTEGER' },
+            { name: 'trophiesLeagueScore', type: 'REAL' },
 
             // War Stars
             { name: 'warStars', type: 'INTEGER' },
@@ -1186,28 +712,18 @@ function tableInfo(db) {
             { name: 'equipmentLevelsScore', type: 'REAL' },
 
             { name: 'playerQualityScore', type: 'REAL' }
-        ]
+        ],
+        ['rankedSeason', 'playerTag']
     );
 
-    // Table 12: B2_ClanGamesLog
+    // Table 12: B02_ClanGamesLog
     // Primary database: A2_ClanMembers
     // DB format: Stores history of the total amount of clan games points earned, meant to help identify how much each member contributed in each clan games.
     // DB Ordering: season name > player tag
     
     createOrUpdateTable(
         db,
-        'B2_ClanGamesLog',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            season TEXT,
-            playerTag TEXT,
-
-            -- Clan Games Stats
-            gamesChampionPoints INTEGER,
-            increaseFromPrevious INTEGER,
-
-            clanGamesScore REAL
-        )`,
+        'B02_ClanGamesLog',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'season', type: 'TEXT' },
@@ -1218,174 +734,124 @@ function tableInfo(db) {
             { name: 'increaseFromPrevious', type: 'INTEGER' },
 
             { name: 'clanGamesScore', type: 'REAL' }
-        ]
+        ],
+        ['season', 'playerTag']
     );
 
-    // Table 13: B3_CWLPlayerLog
+    // Table 13: B03_CWLPlayerLog
     // Primary database: A4_CWLAttackDetails
     // DB format: Stores history of the player's performance each CWL.
     // DB Ordering: season name > highest performing player
     
     createOrUpdateTable(
         db,
-        'B3_CWLPlayerLog',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            season TEXT,
-            playerTag TEXT,
-            thLevel INTEGER,
-            mirrorRule BOOLEAN,
-
-            -- Stars
-            war1Stars INTEGER,
-            war2Stars INTEGER,
-            war3Stars INTEGER,
-            war4Stars INTEGER,
-            war5Stars INTEGER,
-            war6Stars INTEGER,
-            war7Stars INTEGER,
-
-            -- Percentages
-            war1Percentage INTEGER,
-            war2Percentage INTEGER,
-            war3Percentage INTEGER,
-            war4Percentage INTEGER,
-            war5Percentage INTEGER,
-            war6Percentage INTEGER,
-            war7Percentage INTEGER,
-
-            -- Stars Percentage Score
-            war1AttackScore REAL,
-            war2AttackScore REAL,
-            war3AttackScore REAL,
-            war4AttackScore REAL,
-            war5AttackScore REAL,
-            war6AttackScore REAL,
-            war7AttackScore REAL,
-
-            -- Opponent TH Level
-            war1OppThLevel INTEGER,
-            war2OppThLevel INTEGER,
-            war3OppThLevel INTEGER,
-            war4OppThLevel INTEGER,
-            war5OppThLevel INTEGER,
-            war6OppThLevel INTEGER,
-            war7OppThLevel INTEGER,
-
-            -- Opponent TH Modifier
-            war1OppThLevelModifier REAL,
-            war2OppThLevelModifier REAL,
-            war3OppThLevelModifier REAL,
-            war4OppThLevelModifier REAL,
-            war5OppThLevelModifier REAL,
-            war6OppThLevelModifier REAL,
-            war7OppThLevelModifier REAL,
-
-            -- Player Map Position
-            war1MapPosition INTEGER,
-            war2MapPosition INTEGER,
-            war3MapPosition INTEGER,
-            war4MapPosition INTEGER,
-            war5MapPosition INTEGER,
-            war6MapPosition INTEGER,
-            war7MapPosition INTEGER,
-
-            -- Opponent Map Position
-            war1OppMapPosition INTEGER,
-            war2OppMapPosition INTEGER,
-            war3OppMapPosition INTEGER,
-            war4OppMapPosition INTEGER,
-            war5OppMapPosition INTEGER,
-            war6OppMapPosition INTEGER,
-            war7OppMapPosition INTEGER,
-
-            -- Mirror Check Modifier
-            war1MirrorModifier REAL,
-            war2MirrorModifier REAL,
-            war3MirrorModifier REAL,
-            war4MirrorModifier REAL,
-            war5MirrorModifier REAL,
-            war6MirrorModifier REAL,
-            war7MirrorModifier REAL,
-
-            -- Individual War Scores
-            war1Score REAL,
-            war2Score REAL,
-            war3Score REAL,
-            war4Score REAL,
-            war5Score REAL,
-            war6Score REAL,
-            war7Score REAL,
-
-            -- Attacks Used
-            attacksUsed INTEGER,
-            maxAttacks INTEGER,
-            attackModifier REAL,
-
-            cwlPerformanceScore REAL
-        )`,
+        'B03_CWLPlayerLog',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'season', type: 'TEXT' },
             { name: 'playerTag', type: 'TEXT' },
+            { name: 'thLevel', type: 'INTEGER' },
+            { name: 'mirrorRule', type: 'BOOLEAN' },
 
-            // Clan Games Stats
-            { name: 'gamesChampionPoints', type: 'INTEGER' },
-            { name: 'increaseFromPrevious', type: 'INTEGER' },
+            // Stars
+            { name: 'war1Stars', type: 'INTEGER' },
+            { name: 'war2Stars', type: 'INTEGER' },
+            { name: 'war3Stars', type: 'INTEGER' },
+            { name: 'war4Stars', type: 'INTEGER' },
+            { name: 'war5Stars', type: 'INTEGER' },
+            { name: 'war6Stars', type: 'INTEGER' },
+            { name: 'war7Stars', type: 'INTEGER' },
 
-            { name: 'clanGamesScore', type: 'REAL' }
-        ]
+            // Percentages
+            { name: 'war1Percentage', type: 'INTEGER' },
+            { name: 'war2Percentage', type: 'INTEGER' },
+            { name: 'war3Percentage', type: 'INTEGER' },
+            { name: 'war4Percentage', type: 'INTEGER' },
+            { name: 'war5Percentage', type: 'INTEGER' },
+            { name: 'war6Percentage', type: 'INTEGER' },
+            { name: 'war7Percentage', type: 'INTEGER' },
+
+            // Stars Percentage Score
+            { name: 'war1AttackScore', type: 'REAL' },
+            { name: 'war2AttackScore', type: 'REAL' },
+            { name: 'war3AttackScore', type: 'REAL' },
+            { name: 'war4AttackScore', type: 'REAL' },
+            { name: 'war5AttackScore', type: 'REAL' },
+            { name: 'war6AttackScore', type: 'REAL' },
+            { name: 'war7AttackScore', type: 'REAL' },
+
+            // Opponent TH Level
+            { name: 'war1OppThLevel', type: 'INTEGER' },
+            { name: 'war2OppThLevel', type: 'INTEGER' },
+            { name: 'war3OppThLevel', type: 'INTEGER' },
+            { name: 'war4OppThLevel', type: 'INTEGER' },
+            { name: 'war5OppThLevel', type: 'INTEGER' },
+            { name: 'war6OppThLevel', type: 'INTEGER' },
+            { name: 'war7OppThLevel', type: 'INTEGER' },
+
+            // Opponent TH Modifier
+            { name: 'war1OppThLevelModifier', type: 'REAL' },
+            { name: 'war2OppThLevelModifier', type: 'REAL' },
+            { name: 'war3OppThLevelModifier', type: 'REAL' },
+            { name: 'war4OppThLevelModifier', type: 'REAL' },
+            { name: 'war5OppThLevelModifier', type: 'REAL' },
+            { name: 'war6OppThLevelModifier', type: 'REAL' },
+            { name: 'war7OppThLevelModifier', type: 'REAL' },
+
+            // Player Map Position
+            { name: 'war1MapPosition', type: 'INTEGER' },
+            { name: 'war2MapPosition', type: 'INTEGER' },
+            { name: 'war3MapPosition', type: 'INTEGER' },
+            { name: 'war4MapPosition', type: 'INTEGER' },
+            { name: 'war5MapPosition', type: 'INTEGER' },
+            { name: 'war6MapPosition', type: 'INTEGER' },
+            { name: 'war7MapPosition', type: 'INTEGER' },
+
+            // Opponent Map Position
+            { name: 'war1OppMapPosition', type: 'INTEGER' },
+            { name: 'war2OppMapPosition', type: 'INTEGER' },
+            { name: 'war3OppMapPosition', type: 'INTEGER' },
+            { name: 'war4OppMapPosition', type: 'INTEGER' },
+            { name: 'war5OppMapPosition', type: 'INTEGER' },
+            { name: 'war6OppMapPosition', type: 'INTEGER' },
+            { name: 'war7OppMapPosition', type: 'INTEGER' },
+
+            // Mirror Check Modifier
+            { name: 'war1MirrorModifier', type: 'REAL' },
+            { name: 'war2MirrorModifier', type: 'REAL' },
+            { name: 'war3MirrorModifier', type: 'REAL' },
+            { name: 'war4MirrorModifier', type: 'REAL' },
+            { name: 'war5MirrorModifier', type: 'REAL' },
+            { name: 'war6MirrorModifier', type: 'REAL' },
+            { name: 'war7MirrorModifier', type: 'REAL' },
+
+            // Individual War Scores
+            { name: 'war1Score', type: 'REAL' },
+            { name: 'war2Score', type: 'REAL' },
+            { name: 'war3Score', type: 'REAL' },
+            { name: 'war4Score', type: 'REAL' },
+            { name: 'war5Score', type: 'REAL' },
+            { name: 'war6Score', type: 'REAL' },
+            { name: 'war7Score', type: 'REAL' },
+
+            // Attacks Used
+            { name: 'attacksUsed', type: 'INTEGER' },
+            { name: 'maxAttacks', type: 'INTEGER' },
+            { name: 'attackModifier', type: 'REAL' },
+
+            { name: 'cwlPerformanceScore', type: 'REAL' }
+        ],
+        ['season', 'playerTag']
     );
 
-    // Table 14: C1_ClanSeasonStats
+    // Table 14: C01_ClanSeasonStats
     // Primary database: A1_ClanInfo || A2_ClanMembers
     // DB format: Stores summarized clan history (monthly, right after CWL signup ends)
     // DB Ordering: season number
     
     createOrUpdateTable(
         db,
-        'C1_ClanSeasonStats',
-        `(
-            season TEXT PRIMARY KEY,
-            teamSeason INTEGER,
-
-            --  Clan High Level Overview
-            clanLevel INTEGER,
-            estClanXpGain INTEGER,
-            thClanPoints INTEGER,
-            bhClanPoints INTEGER,
-            playerCount INTEGER,
-
-            -- Clan Entrance Requirements
-            thLeagueRequirement INTEGER,
-            bhTrophyRequirement INTEGER,
-            minThRequirement INTEGER,
-
-            -- Player Stats
-            avgPlayerLvl INTEGER,
-            avgThLeague REAL,
-            avgBhTrophies REAL,
-            avgThLevel REAL,
-            avgBhLevel REAL,
-            avgWarStars REAL,
-
-            -- Clan War Stats
-            warsWon INTEGER,
-            warsLost INTEGER,
-            warsTied INTEGER,
-
-            -- Clan Games Stats
-            CgTotalPoints INTEGER,
-            CgActivePlayers INTEGER,
-            CgMaxPlayers INTEGER,
-            CgAvgPoints REAL,
-
-            -- Clan Capital Stats
-            ccCapitalHallLvl INTEGER,
-            ccUpgrades INTEGER,
-            ccTrophies INTEGER,
-            ccAvgGoldDonated REAL
-        )`,
+        'C01_ClanSeasonStats',
         [
             { name: 'season', type: 'TEXT PRIMARY KEY' },
             { name: 'teamSeason', type: 'INTEGER' },
@@ -1426,66 +892,18 @@ function tableInfo(db) {
             { name: 'ccUpgrades', type: 'INTEGER' },
             { name: 'ccTrophies', type: 'INTEGER' },
             { name: 'ccAvgGoldDonated', type: 'REAL' }
-        ]
+        ],
+        ['season', 'teamSeason']
     );
 
-    // Table 15: C2_CwlSeasonStats
+    // Table 15: C02_CwlSeasonStats
     // Primary database: A3_CWLWarDetails || A4_CWLAttackDetails
     // DB format: Stores summarized CWL history (monthly, right after CWL ends)
     // DB Ordering: season number
     
     createOrUpdateTable(
         db,
-        'C2_CwlSeasonStats',
-        `(
-            season TEXT PRIMARY KEY,
-            teamSeason INTEGER,
-            clanLevel INTEGER,
-
-            -- CWL High Level Overview
-            cwlLeague TEXT,
-            cwlPosition INTEGER,
-            cwlPromotion BOOLEAN,
-            cwlWarSize INTEGER,
-            cwlWarsWon INTEGER,
-            cwlTotalWars INTEGER,
-
-            -- CWL Stats
-            cwlStarsEarned INTEGER,
-            cwlStarsMax INTEGER,
-            cwlStarsPercentage REAL,
-
-            cwlDamageEarned INTEGER,
-            cwlDamageMax INTEGER,
-            cwlDamagePercentage REAL,
-
-            cwlXpEarned INTEGER
-
-            cwlAttacksUsed INTEGER,
-            cwlAttacksMax INTEGER,
-            cwlAttacksPercentage REAL,
-
-            cwlAvgStarsPerAttack REAL,
-            cwlAvgTeamThLevel REAL,
-
-            --CWL Opponent Stats
-            cwlTotalAvgAttacks REAL,
-
-            cwlOpponentAttacks INTEGER,
-            cwlOpponentAttacksMax INTEGER,
-            cwlOpponentAttacksPercentage REAL,
-
-            cwlOpponentAvgStars REAL,
-            cwlOpponentAvgStarsMax INTEGER,
-            cwlOpponentAvgStarsPercentage REAL,
-            cwlTotalAvgStarsPerAttack REAL,
-
-            cwlTotalAvgDamage REAL,
-            cwlTotalAvgDamageMax REAL,
-            cwlTotalAvgDamagePercentage REAL,
-
-            cwlTotalAvgThLevel REAL
-        )`,
+        'C02_CwlSeasonStats',
         [
             { name: 'season', type: 'TEXT PRIMARY KEY' },
             { name: 'teamSeason', type: 'INTEGER' },
@@ -1534,57 +952,18 @@ function tableInfo(db) {
             { name: 'cwlTotalAvgDamagePercentage', type: 'REAL' },
 
             { name: 'cwlTotalAvgThLevel', type: 'REAL' }
-        ]
+        ],
+        ['season', 'teamSeason']
     );
 
-    // Table 16: C3_ClanWarSeasonStats
+    // Table 16: C03_ClanWarSeasonStats
     // Primary database: A5_ClanWarLog || A6_ClanWarAttackDetails
     // DB format: Stores summarized clan war history (monthly, right before CWL signup ends)
     // DB Ordering: season number
     
     createOrUpdateTable(
         db,
-        'C3_ClanWarSeasonStats',
-        `(
-            season TEXT PRIMARY KEY,
-            teamSeason INTEGER,
-            clanLevel INTEGER,
-
-            -- Clan War High Level Overview
-            totalWars INTEGER,
-            seasonWarsWon INTEGER,
-            seasonWarsLost INTEGER,
-            seasonWarsTied INTEGER,
-
-            -- Clan War Stats
-            totalStarsEarned INTEGER,
-            totalStarsMax INTEGER,
-            starsPercentage REAL,
-
-            totalAttacksUsed INTEGER,
-            totalAttacksMax INTEGER,
-            attacksPercentage REAL,
-
-            avgStarsPerAttack REAL,
-            avgNewStarsPerAttack REAL,
-            avgDamagePercentage REAL,
-
-            estXpEarned INTEGER,
-            avgXpPerWar REAL,
-
-            -- Opponent Stats
-            opponentStarsEarned INTEGER,
-            opponentStarsMax INTEGER,
-            opponentStarsPercentage REAL,
-
-            opponentAttacksUsed INTEGER,
-            opponentAttacksMax INTEGER,
-            opponentAttacksPercentage REAL,
-
-            avgOpponentStarsPerAttack REAL,
-            avgOpponrntNewStarsPerAttack REAL,
-            avgOpponentDamagePercentage REAL
-        )`,
+        'C03_ClanWarSeasonStats',
         [
             { name: 'season', type: 'TEXT PRIMARY KEY' },
             { name: 'teamSeason', type: 'INTEGER' },
@@ -1624,67 +1003,18 @@ function tableInfo(db) {
             { name: 'avgOpponentStarsPerAttack', type: 'REAL' },
             { name: 'avgOpponrntNewStarsPerAttack', type: 'REAL' },
             { name: 'avgOpponentDamagePercentage', type: 'REAL' }
-        ]
+        ],
+        ['season', 'teamSeason']
     );
 
-    // Table 17: C4_WeekendRaidSeasonStats
+    // Table 17: C04_WeekendRaidSeasonStats
     // Primary database: A7_ClanCapitalLog || A8_ClanCapitalAttacks || A9_ClanCapitalClanAttacks || A10_ClanCapitalClanDefenses
     // DB format: Stores summarized clan capital history (monthly, right before CWL signup ends)
     // DB Ordering: season number
     
     createOrUpdateTable(
         db,
-        'C4_WeekendRaidSeasonStats',
-        `(
-            season TEXT PRIMARY KEY,
-            teamSeason INTEGER,
-            clanLevel INTEGER,
-
-            -- Weekend Raid High Level Overview
-            clanCapitalHallLvl INTEGER,
-            clanCapitalUpgrades INTEGER,
-            clanCapitalTrophies INTEGER,
-            seasonRaidsCompleted INTEGER,
-
-            -- Weekend Raid Player Stats
-            seasonClanMembers INTEGER,
-            totalPlayers INTEGER,
-            avgPlayersPerRaid REAL,
-            totalMaxPlayers INTEGER,
-            percentagePlayersPerRaid REAL,
-
-            -- Weekend Raid Stats
-            trophiesGained INTEGER,
-            avgTrophiesGained REAL,
-
-            goldLootedTotal INTEGER,
-            goldLootedAvg REAL,
-            goldLootedAvgPerPlayer REAL,
-            goldLootedAvgPerAttack REAL,
-
-            attacksTotal INTEGER,
-            attacksTotalPerRaid REAL,
-            attacksAvgPerPlayer REAL,
-            attacksAvgPerPlayerPercentage REAL,
-
-            raidMedalsAttackTotal INTEGER,
-            raidMedalsDefenseTotal INTEGER,
-            raidMedalsTotal INTEGER,
-            raidMedalsAvg REAL,
-
-            -- Clans Stats
-            clansAttackedTotal INTEGER,
-            clansAttackedAvg REAL,
-            avgAttacksPerClan REAL,
-
-            clansDefendedTotal INTEGER,
-            clansDefendedAttacks INTEGER,
-            clansDefendedAttacksAvg REAL
-
-            -- Clan Performance
-            attackPerformanceRatio REAL,
-            clansAttackDefenseRatio REAL
-        )`,
+        'C04_WeekendRaidSeasonStats',
         [
             { name: 'season', type: 'TEXT PRIMARY KEY' },
             { name: 'teamSeason', type: 'INTEGER' },
@@ -1734,85 +1064,18 @@ function tableInfo(db) {
             // Clan Performance
             { name: 'attackPerformanceRatio', type: 'REAL' },
             { name: 'clansAttackDefenseRatio', type: 'REAL' }
-        ]
+        ],
+        ['season', 'teamSeason']
     );
 
-    // Table 18: C5_ThLeagueSeasonStats
+    // Table 18: C05_ThLeagueSeasonStats
     // Primary database: A2_ClanMembers
     // DB format: Stores count of number of players per league in the clan (weekly, right before ranked signup ends)
     // DB Ordering: season number
     
     createOrUpdateTable(
         db,
-        'C5_ThLeagueSeasonStats',
-        `(
-            season TEXT PRIMARY KEY,
-            teamSeason INTEGER,
-            clanLevel INTEGER,
-
-            avgThLeague REAL,
-
-            -- Unranked
-            leagueCount0 INTEGER,
-
-            -- Skeleton League
-            leagueCount1 INTEGER,
-            leagueCount2 INTEGER,
-            leagueCount3 INTEGER,
-
-            -- Barbarian League
-            leagueCount4 INTEGER,
-            leagueCount5 INTEGER,
-            leagueCount6 INTEGER,
-
-            -- Archer League
-            leagueCount7 INTEGER,
-            leagueCount8 INTEGER,
-            leagueCount9 INTEGER,
-
-            -- Wizard League
-            leagueCount10 INTEGER,
-            leagueCount11 INTEGER,
-            leagueCount12 INTEGER,
-
-            -- Valkyrie League
-            leagueCount13 INTEGER,
-            leagueCount14 INTEGER,
-            leagueCount15 INTEGER,
-
-            -- Witch League
-            leagueCount16 INTEGER,
-            leagueCount17 INTEGER,
-            leagueCount18 INTEGER,
-
-            -- Golem League
-            leagueCount19 INTEGER,
-            leagueCount20 INTEGER,
-            leagueCount21 INTEGER,
-
-            -- P.E.K.K.A League
-            leagueCount22 INTEGER,
-            leagueCount23 INTEGER,
-            leagueCount24 INTEGER,
-
-            -- Electro Titan League
-            leagueCount25 INTEGER,
-            leagueCount26 INTEGER,
-            leagueCount27 INTEGER,
-
-            -- Dragon League
-            leagueCount28 INTEGER,
-            leagueCount29 INTEGER,
-            leagueCount30 INTEGER,
-
-            -- Electro Dragon League
-            leagueCount31 INTEGER,
-            leagueCount32 INTEGER,
-            leagueCount33 INTEGER,
-
-            -- Legend League
-            leagueCount34 INTEGER
-        )`,
+        'C05_ThLeagueSeasonStats',
         [
             { name: 'season', type: 'TEXT PRIMARY KEY' },
             { name: 'teamSeason', type: 'INTEGER' },
@@ -1880,84 +1143,18 @@ function tableInfo(db) {
 
             // Legend League
             { name: 'leagueCount34', type: 'INTEGER' }
-        ]
+        ],
+        ['season', 'teamSeason', 'avgThLeague']
     );
 
-    // Table 19: C6_BhLeagueSeasonStats
+    // Table 19: C06_BhLeagueSeasonStats
     // Primary database: A2_ClanMembers
     // DB format: Stores count of number of players per builder base league in the clan (monthly, right before CWL signup ends)
     // DB Ordering: season number
     
     createOrUpdateTable(
         db,
-        'C6_BhLeagueSeasonStats',
-        `(
-            season TEXT PRIMARY KEY,
-            teamSeason INTEGER,
-            clanLevel INTEGER,
-
-            avgBhLeague REAL,
-
-            -- Unranked
-            leagueCount0 INTEGER,
-
-            -- Sub-2000 Leagues
-            leagueCountWood5 INTEGER,
-            leagueCountWood4 INTEGER,
-            leagueCountWood3 INTEGER,
-            leagueCountWood2 INTEGER,
-            leagueCountWood1 INTEGER,
-
-            leagueCountClay5 INTEGER,
-            leagueCountClay4 INTEGER,
-            leagueCountClay3 INTEGER,
-            leagueCountClay2 INTEGER,
-            leagueCountClay1 INTEGER,
-
-            leagueCountStone5 INTEGER,
-            leagueCountStone4 INTEGER,
-            leagueCountStone3 INTEGER,
-            leagueCountStone2 INTEGER,
-            leagueCountStone1 INTEGER,
-
-            leagueCountCopper5 INTEGER,
-            leagueCountCopper4 INTEGER,
-            leagueCountCopper3 INTEGER,
-            leagueCountCopper2 INTEGER,
-            leagueCountCopper1 INTEGER,
-
-            -- Crystal to Titan Leagues
-            leagueCountBrass3 INTEGER,
-            leagueCountBrass2 INTEGER,
-            leagueCountBrass1 INTEGER,
-
-            leagueCountIron3 INTEGER,
-            leagueCountIron2 INTEGER,
-            leagueCountIron1 INTEGER,
-
-            leagueCountSteel3 INTEGER,
-            leagueCountSteel2 INTEGER,
-            leagueCountSteel1 INTEGER,
-
-            leagueCountTitanium3 INTEGER,
-            leagueCountTitanium2 INTEGER,
-            leagueCountTitanium1 INTEGER,
-
-            leagueCountPlatinum3 INTEGER,
-            leagueCountPlatinum2 INTEGER,
-            leagueCountPlatinum1 INTEGER,
-
-            -- Legend Leagues
-            leagueCountEmerald3 INTEGER,
-            leagueCountEmerald2 INTEGER,
-            leagueCountEmerald1 INTEGER,
-
-            leagueCountRuby3 INTEGER,
-            leagueCountRuby2 INTEGER,
-            leagueCountRuby1 INTEGER,
-
-            leagueCountDiamond INTEGER
-        )`,
+        'C06_BhLeagueSeasonStats',
         [
             { name: 'season', type: 'TEXT PRIMARY KEY' },
             { name: 'teamSeason', type: 'INTEGER' },
@@ -2024,44 +1221,18 @@ function tableInfo(db) {
             { name: 'leagueCountRuby1', type: 'INTEGER' },
 
             { name: 'leagueCountDiamond', type: 'INTEGER' }
-        ]
+        ],
+        ['season', 'teamSeason', 'avgBhLeague']
     );
 
-    // Table 20: C7_ThCountSeasonStats
+    // Table 20: C07_ThCountSeasonStats
     // Primary database: A2_ClanMembers
     // DB format: Stores count of number of players THs in the clan (monthly, right before CWL signup ends)
     // DB Ordering: season number
     
     createOrUpdateTable(
         db,
-        'C7_ThCountSeasonStats',
-        `(
-            season TEXT PRIMARY KEY,
-            teamSeason INTEGER,
-            clanLevel INTEGER,
-
-            avgThLevel REAL,
-
-            -- Town Hall Levels
-            countTh1 INTEGER,
-            countTh2 INTEGER,
-            countTh3 INTEGER,
-            countTh4 INTEGER,
-            countTh5 INTEGER,
-            countTh6 INTEGER,
-            countTh7 INTEGER,
-            countTh8 INTEGER,
-            countTh9 INTEGER,
-            countTh10 INTEGER,
-            countTh11 INTEGER,
-            countTh12 INTEGER,
-            countTh13 INTEGER,
-            countTh14 INTEGER,
-            countTh15 INTEGER,
-            countTh16 INTEGER,
-            countTh17 INTEGER,
-            countTh18 INTEGER
-        )`,
+        'C07_ThCountSeasonStats',
         [
             { name: 'season', type: 'TEXT PRIMARY KEY' },
             { name: 'teamSeason', type: 'INTEGER' },
@@ -2088,36 +1259,18 @@ function tableInfo(db) {
             { name: 'countTh16', type: 'INTEGER' },
             { name: 'countTh17', type: 'INTEGER' },
             { name: 'countTh18', type: 'INTEGER' }            
-        ]
+        ],
+        ['season', 'teamSeason', 'avgThLevel']
     );
 
-    // Table 21: C8_BhCountSeasonStats
+    // Table 21: C08_BhCountSeasonStats
     // Primary database: A2_ClanMembers
     // DB format: Stores count of number of players BHs in the clan (monthly, right before CWL signup ends)
     // DB Ordering: season number
     
     createOrUpdateTable(
         db,
-        'C8_BhCountSeasonStats',
-        `(
-            season TEXT PRIMARY KEY,
-            teamSeason INTEGER,
-            clanLevel INTEGER,
-
-            avgBhLevel REAL,
-
-            -- Builder Hall Levels
-            countBh1 INTEGER,
-            countBh2 INTEGER,
-            countBh3 INTEGER,
-            countBh4 INTEGER,
-            countBh5 INTEGER,
-            countBh6 INTEGER,
-            countBh7 INTEGER,
-            countBh8 INTEGER,
-            countBh9 INTEGER,
-            countBh10 INTEGER
-        )`,
+        'C08_BhCountSeasonStats',
         [
             { name: 'season', type: 'TEXT PRIMARY KEY' },
             { name: 'teamSeason', type: 'INTEGER' },
@@ -2135,32 +1288,27 @@ function tableInfo(db) {
             { name: 'countBh7', type: 'INTEGER' },
             { name: 'countBh8', type: 'INTEGER' },
             { name: 'countBh9', type: 'INTEGER' },
-            { name: 'countBh10', type: 'INTEGER' }         
-        ]
+            { name: 'countBh10', type: 'INTEGER' }
+        ],
+        ['season', 'teamSeason', 'avgBhLevel']
     );
 
-    // Table 22: D1_Achievements
+    // Table 22: D01_Achievements
     // Primary database: A1_ClanInfo
     // DB format: Stores achievements of the clan (updated whenever the relevant achievement is obtained; formatted per achievement)
     // DB Ordering: order of Achievement
     
     createOrUpdateTable(
         db,
-        'D1_Achievements',
-        `(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            
-            dateLogged TEXT,
-            achievementName TEXT,
-            achievementInt INTEGER,
-        )`,
+        'D01_Achievements',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             
             { name: 'dateLogged', type: 'TEXT' },
             { name: 'achievementName', type: 'TEXT' },
             { name: 'achievementInt', type: 'INTEGER' }   
-        ]
+        ],
+        ['dateLogged', 'achievementName']
     );
 }
 
