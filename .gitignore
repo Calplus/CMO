@@ -62,3 +62,4 @@ dkms.conf
 /src/config/
 /target/
 /.vscode/
+/.vscode
