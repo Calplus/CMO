@@ -505,9 +505,6 @@ function tableInfo(db) {
     // DB format: Stores detailed information about each player's attacks in clan wars. Does not account for CWL.
     // DB Ordering: first to last war > attacker map position then defender map position. Indexed via endTime
 
-    /*
-    UPDATE AGAIN WHEN CWL ENDS
-
     createOrUpdateTable(
         db,
         'A06_ClanWarAttackDetails',
@@ -531,14 +528,57 @@ function tableInfo(db) {
 
         )`,
         [
-            { name: 'endTime', type: 'INTEGER PRIMARY KEY' },
+            { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'dateLogged', type: 'TEXT' },
+            { name: 'cwSeason', type: 'TEXT' },
 
+            // Player Details
+            { name: 'attackerTag', type: 'TEXT' },
+            { name: 'attackerName', type: 'TEXT' },
+            { name: 'attackerThLevel', type: 'INTEGER' },
+            { name: 'attackerMapPosition', type: 'INTEGER' },
+
+            // Attack 1
+            { name: 'defender1Tag', type: 'TEXT' },
+            { name: 'defender1Name', type: 'TEXT' },
+            { name: 'defender1ThLevel', type: 'INTEGER' },
+            { name: 'defender1MapPosition', type: 'INTEGER' },
+
+            { name: 'attack1Stars', type: 'INTEGER' },
+            { name: 'attack1DestructionPercentage', type: 'INTEGER' },
+            { name: 'attack1Order', type: 'INTEGER' },
+            { name: 'attack1Duration', type: 'INTEGER' },
+
+            { name: 'attack1Score', type: 'REAL' },
+            { name: 'attack1ThModifier', type: 'REAL' },
+
+            // Attack 2
+            { name: 'defender2Tag', type: 'TEXT' },
+            { name: 'defender2Name', type: 'TEXT' },
+            { name: 'defender2ThLevel', type: 'INTEGER' },
+            { name: 'defender2MapPosition', type: 'INTEGER' },
+
+            { name: 'attack2Stars', type: 'INTEGER' },
+            { name: 'attack2DestructionPercentage', type: 'INTEGER' },
+            { name: 'attack2Order', type: 'INTEGER' },
+            { name: 'attack2Duration', type: 'INTEGER' },
+
+            { name: 'attack2Score', type: 'REAL' },
+            { name: 'attack2ThModifier', type: 'REAL' },
+
+            // Best Defense
+            { name: 'defenseAttackerTag', type: 'TEXT' },
+            { name: 'defenseStars', type: 'INTEGER' },
+            { name: 'defenseDestructionPercentage', type: 'INTEGER' },
+            { name: 'defenseOrder', type: 'INTEGER' },
+            { name: 'defenseDuration', type: 'INTEGER' },
+
+            // Scores
+            { name: 'attacksUsed', type: 'REAL' },
+            { name: 'totalWarScore', type: 'REAL' }
         ],
-        ['xxx']
+        ['dateLogged', 'cwSeason', 'attackerTag']
     );
-
-    */
 
     // Table 7: A07_ClanCapitalLog
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/capitalraidseasons
