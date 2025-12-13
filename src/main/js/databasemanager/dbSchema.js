@@ -3,6 +3,24 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
+const DiscordLog = require('../discordBot/logs/discordLog');
+const discordLog = new DiscordLog();
+
+// Intercept console.error to also send errors to Discord
+const originalConsoleError = console.error;
+
+console.error = function (...args) {
+    try {
+        // Send error to Discord
+        discordLog.logError(args.map(a => (typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a))).join(' '));
+    } catch (e) {
+        // Fallback to original error if Discord logging fails
+        originalConsoleError('Failed to send error to Discord:', e);
+    }
+    // Always call the original console.error
+    originalConsoleError.apply(console, args);
+};
+
 function ensureColumn(db, tableName, columnName, columnType) {
     db.get(`PRAGMA table_info(${tableName})`, (err, row) => {
         if (err) {
@@ -47,7 +65,10 @@ function createOrUpdateTable(db, tableName, columns, indexColumns) {
             indexColumns.forEach(col => {
                 const indexName = `idx_${tableName}_${col}`;
                 db.run(`CREATE INDEX IF NOT EXISTS ${indexName} ON ${tableName}(${col})`, (err) => {
-                    if (err) console.error(`Error creating index on ${tableName}.${col}:`, err.message);
+                    if (err) {
+                        console.error(`Error creating index on ${tableName}.${col}:`, err.message);
+                    }
+                        
                     else console.log(`Index '${indexName}' created on '${tableName}(${col})'.`);
                 });
             });
@@ -60,23 +81,52 @@ function createDatabase(dbName) {
     const dbPath = path.join(dbDir, dbName);
     const dbExists = fs.existsSync(dbPath);
 
+    // Log INFO: database is being created/running
+    const infoMsgStart = `Database creation started for: ${dbName}`;
+    console.log(infoMsgStart);
+    discordLog.logInfo(infoMsgStart);
+
     // Create a blank database file if it doesn't exist
     if (!dbExists) {
-        fs.closeSync(fs.openSync(dbPath, 'w'));
-        console.log(`Blank database file '${dbName}' created at ${dbPath}`);
+        try {
+            fs.mkdirSync(dbDir, { recursive: true });
+            fs.closeSync(fs.openSync(dbPath, 'w'));
+            const infoMsgBlank = `Blank database file '${dbName}' created at ${dbPath}`;
+            console.log(infoMsgBlank);
+            discordLog.logInfo(infoMsgBlank);
+        } catch (err) {
+            const errMsg = `Failed to create database file: ${dbPath}. Error: ${err.message}. Check the console log for details.`;
+            console.error(errMsg);
+            discordLog.logError(errMsg);
+            throw err;
+        }
     }
 
     const db = new sqlite3.Database(dbPath, (err) => {
         if (err) {
-            console.error('Error creating database:', err.message);
+            const errMsg = `Error creating database: ${err.message}`;
+            console.error(errMsg);
+            discordLog.logError(errMsg);
         } else {
-            console.log(`Database '${dbName}' opened at ${dbPath}`);
+            const infoMsgOpen = `Database '${dbName}' opened`;
+            console.log(infoMsgOpen);
+            discordLog.logSuccess(infoMsgOpen);
         }
     });
 
-    tableInfo(db);
-
-    db.close();
+    try {
+        tableInfo(db);
+        const successMsg = `Database created successfully: ${dbPath}`;
+        console.log(successMsg);
+        discordLog.logSuccess(successMsg);
+    } catch (err) {
+        const errMsg = `Database creation failed for ${dbName}: ${err.message}`;
+        console.error(errMsg);
+        discordLog.logError(errMsg);
+        throw err;
+    } finally {
+        db.close();
+    }
 }
 
 function tableInfo(db) {
@@ -136,6 +186,7 @@ function tableInfo(db) {
         ],
         ['season']
     );
+
 
     // Table 2: A02_ClanMembers
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/members || https://api.clashofclans.com/v1/players/%23{playerTag}

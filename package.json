@@ -19,7 +19,12 @@
   "homepage": "https://github.com/CalplusOfficial/CMO#readme",
   "dependencies": {
     "discord.js": "^14.25.1",
-    "package.json": "^2.0.1",
+    "java": "^0.18.0",
+    "package.json": "^0.0.0",
     "sqlite3": "^5.1.6"
+  },
+  "javaDependencies": {
+    "gson": "com.google.code.gson:gson:2.10.1",
+    "sqlite-jdbc": "org.xerial:sqlite-jdbc:3.45.2.0"
   }
 }

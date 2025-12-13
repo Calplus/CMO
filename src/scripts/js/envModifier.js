@@ -78,6 +78,12 @@ async function main() {
             key: 'DISCORD_BOT_TOKEN',
             promptText: 'Enter your Discord Bot Token: ',
             validate: (input) => !!input
+        },
+        
+        {
+            key: 'DISCORD_LOG_CHANNELID',
+            promptText: 'Enter your Discord Log Channel ID: ',
+            validate: (input) => !!input && /^\d+$/.test(input)
         }
     ];
 

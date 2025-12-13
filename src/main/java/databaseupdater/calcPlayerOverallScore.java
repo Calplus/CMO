@@ -1,4 +1,4 @@
-package main.java.databaseupdater;
+package databaseupdater;
 
 public class calcPlayerOverallScore {
     public static final int [][] leagueScore = {
@@ -22,5 +22,5 @@ public class calcPlayerOverallScore {
         {  0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,  20 ,  40 ,  60 ,  80 ,  90 ,  95 , 100 , 100 , 100 }, //TH17
         {  0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,   0 ,  15 ,  40 ,  65 ,  80 ,  95 , 100 , 100 }, //TH18
         //S1 | S2  | S3  | B4  | B5  | B6  | A7  | A8  | A9  | W10 | W11 | W12 | V13 | V14 | V15 | W16 | W17 | W18 | G19 | G20 | G21 | P22 | P23 | P24 | T25 | T26 | T27 | D28 | D29 | D30 | E31 | E32 | E33 | L34 }
-};
+    };
 }

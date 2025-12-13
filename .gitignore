@@ -56,4 +56,9 @@ dkms.conf
 
 # Installed dependencies
 /node_modules/
+
+# Runtime Files
 /database/
+/src/config/
+/target/
+/.vscode/
