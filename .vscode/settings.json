@@ -1,5 +1,0 @@
-{
-    "java.dependency.packagePresentation": "hierarchical",
-    "terminal.integrated.cwd": "${workspaceFolder}",
-    "java.debug.settings.console": "integratedTerminal"
-}
