@@ -409,7 +409,7 @@ function tableInfo(db) {
             { name: 'lvlHeroEquipmentElectroBoots', type: 'INTEGER' },
             { name: 'lvlHeroEquipmentFrostFlake', type: 'INTEGER' }
         ],
-        ['playerTag']
+        ['playerTag', 'dateLeft']
     );
 
     // Table 3: A03_CWLWarDetails
