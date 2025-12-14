@@ -3,7 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-const DiscordLog = require('../discordBot/logs/discordLog');
+const DiscordLog = require('../discordbot/logs/discordLog');
 const discordLog = new DiscordLog();
 
 // Intercept console.error to also send errors to Discord
