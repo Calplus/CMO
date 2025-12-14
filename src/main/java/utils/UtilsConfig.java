@@ -12,7 +12,7 @@ import com.google.gson.JsonParser;
 /**
  * Utility class for configuration and environment operations
  */
-public class ConfigUtils {
+public class UtilsConfig {
     
     private static final String ENV_FILE = ".env";
     private static final String CLAN_CONFIG_DIR = "src/config/clans/";

@@ -9,7 +9,7 @@ import java.sql.SQLException;
 /**
  * Utility class for database operations
  */
-public class DatabaseUtils {
+public class UtilsDatabase {
     
     private static final String DB_PATH = "database/core/";
     

@@ -5,31 +5,34 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import discordbot.logs.DiscordLog;
-import utils.ConfigUtils;
-import utils.DatabaseUtils;
-import utils.ErrorInterceptor;
-import utils.JsonUtils;
+import utils.UtilsConfig;
+import utils.UtilsDatabase;
+import utils.UtilsErrorInterceptor;
+import utils.UtilsJson;
+import utils.UtilsKeyValue;
+import utils.UtilsLastValueFetcher;
 
 /**
- * Updates the A01_ClanInfo table with daily clan information from the Clash of Clans API.
+ * Updates the A01a_ClanInfo_TEXT and A01b_ClanInfo_INT tables with daily clan information from the Clash of Clans API.
  * Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}
- * DB format: New rows daily
+ * DB format: Key-value pairs split by data type (TEXT vs INT)
  * DB Ordering: Date logged Ascending
  */
 
 public class A01_ClanInfo {
     
     private static final String API_BASE_URL = "https://api.clashofclans.com/v1/clans/";
+    private static final String TEXT_TABLE = "A01a_ClanInfo_TEXT";
+    private static final String INT_TABLE = "A01b_ClanInfo_INT";
     
     private String apiKey;
     private String dbName;
@@ -44,9 +47,9 @@ public class A01_ClanInfo {
         this.discordLogger = new DiscordLog();
         
         // Setup error interception to log all errors to Discord
-        ErrorInterceptor.setupErrorInterception(this.discordLogger);
+        UtilsErrorInterceptor.setupErrorInterception(this.discordLogger);
         
-        this.apiKey = ConfigUtils.loadApiKey();
+        this.apiKey = UtilsConfig.loadApiKey();
     }
     
     /**
@@ -91,7 +94,7 @@ public class A01_ClanInfo {
             JsonObject district = districts.get(i).getAsJsonObject();
 
             if (district.has("name") && district.get("name").getAsString().equals(districtName)) {
-                Integer level = JsonUtils.getJsonInt(district, "districtHallLevel");
+                Integer level = UtilsJson.getJsonInt(district, "districtHallLevel");
                 return level;
             }
         }
@@ -102,148 +105,123 @@ public class A01_ClanInfo {
 
 
     /**
-     * Inserts clan information into the database
+     * Inserts or updates clan information in the database using key-value format
      */
     public void updateDatabase() throws SQLException, IOException, InterruptedException {
 
         discordLogger.logInfo("Starting database update for clan: " + clanTag);
 
-        if (!DatabaseUtils.databaseExists(dbName)) {
-            String errMsg = "Database file does not exist: " + DatabaseUtils.getDatabasePath(dbName);
+        if (!UtilsDatabase.databaseExists(dbName)) {
+            String errMsg = "Database file does not exist: " + UtilsDatabase.getDatabasePath(dbName);
             System.err.println(errMsg);
             return; // Terminate early, do not proceed
         }
 
+        // Fetch data from API
         JsonObject clanData = fetchClanInfo();
+        
         // Use UTC+0 (Zulu time) in ISO 8601 format
         String currentDateTime = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC).format(java.time.format.DateTimeFormatter.ISO_INSTANT);
-        String season = ConfigUtils.loadSeasonFromConfig(clanTag);
+        String season = UtilsConfig.loadSeasonFromConfig(clanTag);
 
-        String url = DatabaseUtils.getConnectionUrl(dbName);
+        // Fetch last stored values from database (all keys, regardless of season)
+        UtilsLastValueFetcher.CombinedLastValues lastValues = UtilsLastValueFetcher.fetchLastValues(dbName, TEXT_TABLE, INT_TABLE);
 
-        String sql = "INSERT INTO A01_ClanInfo ("
-                + "dateLogged, season, name, type, description, memberCount, clanLevel, "
-                + "clanPoints, clanBbPoints, locationName, isFamilyFriendly, chatLanguage, "
-                + "requiredTrophies, requiredBbTrophies, requiredThLevel, "
-                + "warFrequency, isWarLogPublic, warWinStreak, warWins, warTies, warLosses, CWLLeagueName, "
-                + "capitalHallLevel, capitalPoints, "
-                + "lvlCapitalPeak, lvlBarbarianCamp, lvlWizardValley, lvlBalloonLagoon, "
-                + "lvlBuildersWorkshop, lvlDragonCliffs, lvlGolemQuarry, lvlSkeletonPark, lvlGoblinMines"
-                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = DriverManager.getConnection(url);
+        // Extract all key-value pairs from API data
+        List<UtilsKeyValue.KeyValuePair> textPairs = new ArrayList<>();
+        List<UtilsKeyValue.KeyValuePair> intPairs = new ArrayList<>();
         
-        PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            discordLogger.logInfo("Preparing database insert for clan: " + clanTag);
-            
-            // Basic info
-            DatabaseUtils.setNullableString(pstmt, 1, currentDateTime);
-            DatabaseUtils.setNullableString(pstmt, 2, season);
-            DatabaseUtils.setNullableString(pstmt, 3, JsonUtils.getJsonString(clanData, "name"));
-            DatabaseUtils.setNullableString(pstmt, 4, JsonUtils.getJsonString(clanData, "type"));
-            DatabaseUtils.setNullableString(pstmt, 5, JsonUtils.getJsonString(clanData, "description"));
-            DatabaseUtils.setNullableInt(pstmt, 6, JsonUtils.getJsonInt(clanData, "members"));
-            DatabaseUtils.setNullableInt(pstmt, 7, JsonUtils.getJsonInt(clanData, "clanLevel"));
-            DatabaseUtils.setNullableInt(pstmt, 8, JsonUtils.getJsonInt(clanData, "clanPoints"));
-            DatabaseUtils.setNullableInt(pstmt, 9, JsonUtils.getJsonInt(clanData, "clanBuilderBasePoints"));
+        extractKeyValuePairs(clanData, lastValues, textPairs, intPairs);
 
-            // Location
-            String locationName = null;
-            if (clanData.has("location") && clanData.get("location").isJsonObject()) {
-                JsonObject location = clanData.getAsJsonObject("location");
-                locationName = JsonUtils.getJsonString(location, "name");
-            }
-            DatabaseUtils.setNullableString(pstmt, 10, locationName);
-            DatabaseUtils.setNullableBoolean(pstmt, 11, JsonUtils.getJsonBoolean(clanData, "isFamilyFriendly"));
-            
-            // Chat language
-            String chatLanguage = null;
-            if (clanData.has("chatLanguage") && clanData.get("chatLanguage").isJsonObject()) {
-                JsonObject language = clanData.getAsJsonObject("chatLanguage");
-                chatLanguage = JsonUtils.getJsonString(language, "name");
-            }
-            DatabaseUtils.setNullableString(pstmt, 12, chatLanguage);
-
-            // Requirements
-            DatabaseUtils.setNullableInt(pstmt, 13, JsonUtils.getJsonInt(clanData, "requiredTrophies"));
-            DatabaseUtils.setNullableInt(pstmt, 14, JsonUtils.getJsonInt(clanData, "requiredBuilderBaseTrophies"));
-            DatabaseUtils.setNullableInt(pstmt, 15, JsonUtils.getJsonInt(clanData, "requiredTownhallLevel"));
-
-            // War info
-            DatabaseUtils.setNullableString(pstmt, 16, JsonUtils.getJsonString(clanData, "warFrequency"));
-            DatabaseUtils.setNullableBoolean(pstmt, 17, JsonUtils.getJsonBoolean(clanData, "isWarLogPublic"));
-            DatabaseUtils.setNullableInt(pstmt, 18, JsonUtils.getJsonInt(clanData, "warWinStreak"));
-            DatabaseUtils.setNullableInt(pstmt, 19, JsonUtils.getJsonInt(clanData, "warWins"));
-            DatabaseUtils.setNullableInt(pstmt, 20, JsonUtils.getJsonInt(clanData, "warTies"));
-            DatabaseUtils.setNullableInt(pstmt, 21, JsonUtils.getJsonInt(clanData, "warLosses"));
-
-            // CWL League
-            String cwlLeagueName = null;
-            if (clanData.has("warLeague") && clanData.get("warLeague").isJsonObject()) {
-                JsonObject warLeague = clanData.getAsJsonObject("warLeague");
-                cwlLeagueName = JsonUtils.getJsonString(warLeague, "name");
-            }
-            DatabaseUtils.setNullableString(pstmt, 22, cwlLeagueName);
-
-            // Clan Capital
-            Integer capitalHallLevel = null;
-            Integer capitalPoints = null;
-            JsonArray districts = null;
-
-            if (clanData.has("clanCapital") && clanData.get("clanCapital").isJsonObject()) {
-                JsonObject clanCapital = clanData.getAsJsonObject("clanCapital");
-
-                capitalHallLevel = JsonUtils.getJsonInt(clanCapital, "capitalHallLevel");
-
-                if (clanData.has("clanCapitalPoints")) {
-                    capitalPoints = JsonUtils.getJsonInt(clanData, "clanCapitalPoints");
-                }
-                
-                if (clanCapital.has("districts") && clanCapital.get("districts").isJsonArray()) {
-                    districts = clanCapital.getAsJsonArray("districts");
-                }
-            }
-            DatabaseUtils.setNullableInt(pstmt, 23, capitalHallLevel);
-            DatabaseUtils.setNullableInt(pstmt, 24, capitalPoints);
-
-            // District levels
-            if (districts != null) {
-                DatabaseUtils.setNullableInt(pstmt, 25, getDistrictLevel(districts, "Capital Peak"));
-                DatabaseUtils.setNullableInt(pstmt, 26, getDistrictLevel(districts, "Barbarian Camp"));
-                DatabaseUtils.setNullableInt(pstmt, 27, getDistrictLevel(districts, "Wizard Valley"));
-                DatabaseUtils.setNullableInt(pstmt, 28, getDistrictLevel(districts, "Balloon Lagoon"));
-                DatabaseUtils.setNullableInt(pstmt, 29, getDistrictLevel(districts, "Builder's Workshop"));
-                DatabaseUtils.setNullableInt(pstmt, 30, getDistrictLevel(districts, "Dragon Cliffs"));
-                DatabaseUtils.setNullableInt(pstmt, 31, getDistrictLevel(districts, "Golem Quarry"));
-                DatabaseUtils.setNullableInt(pstmt, 32, getDistrictLevel(districts, "Skeleton Park"));
-                DatabaseUtils.setNullableInt(pstmt, 33, getDistrictLevel(districts, "Goblin Mines"));
-            } else {
-                // Set all district levels to null
-                for (int i = 25; i <= 33; i++) {
-                    pstmt.setNull(i, java.sql.Types.INTEGER);
-                }
-            }
-
-            int rowsAffected = pstmt.executeUpdate();
-            
-            if (rowsAffected > 0) {
-                String successMsg = "Database write successful: Inserted " + rowsAffected + " row(s) into A01_ClanInfo for clan: " + clanTag + " on " + currentDateTime;
-                System.out.println(successMsg);
-                discordLogger.logSuccess(successMsg);
-            } else {
-                String warnMsg = "Database write completed but no rows were affected for clan: " + clanTag;
-                System.out.println(warnMsg);
-                discordLogger.logWarning(warnMsg);
-            }
-        } catch (SQLException e) {
-            String errMsg = "Database write failed for clan: " + clanTag + " - " + e.getMessage();
-            System.err.println(errMsg);
-            discordLogger.logError(errMsg);
-            throw e;
+        // Insert changed values into database
+        int textInserts = UtilsKeyValue.insertTextValues(dbName, TEXT_TABLE, textPairs, currentDateTime, season, clanTag, discordLogger);
+        int intInserts = UtilsKeyValue.insertIntValues(dbName, INT_TABLE, intPairs, currentDateTime, season, clanTag, discordLogger);
+        
+        int totalInserts = textInserts + intInserts;
+        if (totalInserts > 0) {
+            String successMsg = "Database write successful: Inserted " + totalInserts + " key-value pair(s) (" + textInserts + " TEXT, " + intInserts + " INT) for clan: " + clanTag;
+            System.out.println(successMsg);
+            discordLogger.logSuccess(successMsg);
+        } else {
+            String infoMsg = "No changes detected for clan: " + clanTag + " - database is up to date";
+            System.out.println(infoMsg);
+            discordLogger.logInfo(infoMsg);
         }
     }
-    
+
+    /**
+     * Extracts key-value pairs from clan data and compares with last stored values
+     */
+    private void extractKeyValuePairs(JsonObject clanData, UtilsLastValueFetcher.CombinedLastValues lastValues, List<UtilsKeyValue.KeyValuePair> textPairs, List<UtilsKeyValue.KeyValuePair> intPairs) {
+        
+        // TEXT values
+        UtilsKeyValue.addTextIfChanged("name", UtilsJson.getJsonString(clanData, "name"), lastValues, textPairs);
+        UtilsKeyValue.addTextIfChanged("type", UtilsJson.getJsonString(clanData, "type"), lastValues, textPairs);
+        UtilsKeyValue.addTextIfChanged("description", UtilsJson.getJsonString(clanData, "description"), lastValues, textPairs);
+        UtilsKeyValue.addTextIfChanged("warFrequency", UtilsJson.getJsonString(clanData, "warFrequency"), lastValues, textPairs);
+        
+        // Location
+        if (clanData.has("location") && clanData.get("location").isJsonObject()) {
+            JsonObject location = clanData.getAsJsonObject("location");
+            UtilsKeyValue.addTextIfChanged("locationName", UtilsJson.getJsonString(location, "name"), lastValues, textPairs);
+        }
+        
+        // Chat language
+        if (clanData.has("chatLanguage") && clanData.get("chatLanguage").isJsonObject()) {
+            JsonObject language = clanData.getAsJsonObject("chatLanguage");
+            UtilsKeyValue.addTextIfChanged("chatLanguage", UtilsJson.getJsonString(language, "name"), lastValues, textPairs);
+        }
+        
+        // CWL League
+        if (clanData.has("warLeague") && clanData.get("warLeague").isJsonObject()) {
+            JsonObject warLeague = clanData.getAsJsonObject("warLeague");
+            UtilsKeyValue.addTextIfChanged("CWLLeagueName", UtilsJson.getJsonString(warLeague, "name"), lastValues, textPairs);
+        }
+
+        // INTEGER/BOOLEAN values
+        UtilsKeyValue.addIntIfChanged("memberCount", UtilsJson.getJsonInt(clanData, "members"), lastValues, intPairs);
+        UtilsKeyValue.addIntIfChanged("clanLevel", UtilsJson.getJsonInt(clanData, "clanLevel"), lastValues, intPairs);
+        UtilsKeyValue.addIntIfChanged("clanPoints", UtilsJson.getJsonInt(clanData, "clanPoints"), lastValues, intPairs);
+        UtilsKeyValue.addIntIfChanged("clanBbPoints", UtilsJson.getJsonInt(clanData, "clanBuilderBasePoints"), lastValues, intPairs);
+        UtilsKeyValue.addIntIfChanged("requiredTrophies", UtilsJson.getJsonInt(clanData, "requiredTrophies"), lastValues, intPairs);
+        UtilsKeyValue.addIntIfChanged("requiredBbTrophies", UtilsJson.getJsonInt(clanData, "requiredBuilderBaseTrophies"), lastValues, intPairs);
+        UtilsKeyValue.addIntIfChanged("requiredThLevel", UtilsJson.getJsonInt(clanData, "requiredTownhallLevel"), lastValues, intPairs);
+        UtilsKeyValue.addIntIfChanged("warWinStreak", UtilsJson.getJsonInt(clanData, "warWinStreak"), lastValues, intPairs);
+        UtilsKeyValue.addIntIfChanged("warWins", UtilsJson.getJsonInt(clanData, "warWins"), lastValues, intPairs);
+        UtilsKeyValue.addIntIfChanged("warTies", UtilsJson.getJsonInt(clanData, "warTies"), lastValues, intPairs);
+        UtilsKeyValue.addIntIfChanged("warLosses", UtilsJson.getJsonInt(clanData, "warLosses"), lastValues, intPairs);
+        
+        // Boolean as int (0 or 1)
+        Boolean isFamilyFriendly = UtilsJson.getJsonBoolean(clanData, "isFamilyFriendly");
+        UtilsKeyValue.addIntIfChanged("isFamilyFriendly", isFamilyFriendly != null ? (isFamilyFriendly ? 1 : 0) : null, lastValues, intPairs);
+        
+        Boolean isWarLogPublic = UtilsJson.getJsonBoolean(clanData, "isWarLogPublic");
+        UtilsKeyValue.addIntIfChanged("isWarLogPublic", isWarLogPublic != null ? (isWarLogPublic ? 1 : 0) : null, lastValues, intPairs);
+
+        // Clan Capital
+        if (clanData.has("clanCapital") && clanData.get("clanCapital").isJsonObject()) {
+            JsonObject clanCapital = clanData.getAsJsonObject("clanCapital");
+            UtilsKeyValue.addIntIfChanged("capitalHallLevel", UtilsJson.getJsonInt(clanCapital, "capitalHallLevel"), lastValues, intPairs);
+            
+            if (clanData.has("clanCapitalPoints")) {
+                UtilsKeyValue.addIntIfChanged("capitalPoints", UtilsJson.getJsonInt(clanData, "clanCapitalPoints"), lastValues, intPairs);
+            }
+            
+            if (clanCapital.has("districts") && clanCapital.get("districts").isJsonArray()) {
+                JsonArray districts = clanCapital.getAsJsonArray("districts");
+                UtilsKeyValue.addIntIfChanged("lvlCapitalPeak", getDistrictLevel(districts, "Capital Peak"), lastValues, intPairs);
+                UtilsKeyValue.addIntIfChanged("lvlBarbarianCamp", getDistrictLevel(districts, "Barbarian Camp"), lastValues, intPairs);
+                UtilsKeyValue.addIntIfChanged("lvlWizardValley", getDistrictLevel(districts, "Wizard Valley"), lastValues, intPairs);
+                UtilsKeyValue.addIntIfChanged("lvlBalloonLagoon", getDistrictLevel(districts, "Balloon Lagoon"), lastValues, intPairs);
+                UtilsKeyValue.addIntIfChanged("lvlBuildersWorkshop", getDistrictLevel(districts, "Builder's Workshop"), lastValues, intPairs);
+                UtilsKeyValue.addIntIfChanged("lvlDragonCliffs", getDistrictLevel(districts, "Dragon Cliffs"), lastValues, intPairs);
+                UtilsKeyValue.addIntIfChanged("lvlGolemQuarry", getDistrictLevel(districts, "Golem Quarry"), lastValues, intPairs);
+                UtilsKeyValue.addIntIfChanged("lvlSkeletonPark", getDistrictLevel(districts, "Skeleton Park"), lastValues, intPairs);
+                UtilsKeyValue.addIntIfChanged("lvlGoblinMines", getDistrictLevel(districts, "Goblin Mines"), lastValues, intPairs);
+            }
+        }
+    }
+
     /**
      * Main method for testing or standalone execution
      */
@@ -273,7 +251,7 @@ public class A01_ClanInfo {
             // Log to Discord if updater was initialized
             if (updater != null && updater.discordLogger != null) {
                 updater.discordLogger.logError(errorMsg);
-                updater.discordLogger.logError("Stack trace: " + ConfigUtils.getStackTraceAsString(e));
+                updater.discordLogger.logError("Stack trace: " + UtilsConfig.getStackTraceAsString(e));
             }
             
             // Wait for Discord messages to be sent

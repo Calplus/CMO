@@ -130,63 +130,45 @@ function createDatabase(dbName) {
 }
 
 function tableInfo(db) {
-    // Table 1: A01_ClanInfo
+    // Table 1: A01a_ClanInfo_TEXT
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}
-    // DB format: New rows daily
+    // DB format: Key-value pairs split by data type (TEXT vs INT)
     // DB Ordering: Date logged Ascending
 
     createOrUpdateTable(
         db,
-        'A01_ClanInfo',
+        'A01a_ClanInfo_TEXT',
+        [
+            { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
+            { name: 'dateLogged', type: 'TEXT' },
+            { name: 'season', type: 'TEXT' },
+
+            { name: 'key', type: 'TEXT' },
+            { name: 'value', type: 'TEXT' }
+        ],
+        ['season', 'key']
+    );
+
+
+    // Table 1: A01b_ClanInfo_INT
+    // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}
+    // DB format: Key-value pairs split by data type (TEXT vs INT)
+    // DB Ordering: Date logged Ascending
+
+    createOrUpdateTable(
+        db,
+        'A01b_ClanInfo_INT',
         [
             { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
             { name: 'dateLogged', type: 'TEXT' },
             { name: 'season', type: 'TEXT' },
 
             // Clan Info
-            { name: 'name', type: 'TEXT' },
-            { name: 'type', type: 'TEXT' },
-            { name: 'description', type: 'TEXT' },
-            { name: 'memberCount', type: 'INTEGER' },
-            { name: 'clanLevel', type: 'INTEGER' },
-            { name: 'clanPoints', type: 'INTEGER' },
-            { name: 'clanBbPoints', type: 'INTEGER' },
-            { name: 'locationName', type: 'TEXT' },
-            { name: 'isFamilyFriendly', type: 'BOOLEAN' },
-            { name: 'chatLanguage', type: 'TEXT' },
-
-            // Entrance Requirements
-            { name: 'requiredTrophies', type: 'INTEGER' },
-            { name: 'requiredBbTrophies', type: 'INTEGER' },
-            { name: 'requiredThLevel', type: 'INTEGER' },
-
-            // Clan War Info
-            { name: 'warFrequency', type: 'TEXT' },
-            { name: 'isWarLogPublic', type: 'BOOLEAN' },
-            { name: 'warWinStreak', type: 'INTEGER' },
-            { name: 'warWins', type: 'INTEGER' },
-            { name: 'warTies', type: 'INTEGER' },
-            { name: 'warLosses', type: 'INTEGER' },
-            { name: 'CWLLeagueName', type: 'TEXT' },
-
-            // Clan Capital Info
-            { name: 'capitalHallLevel', type: 'INTEGER' },
-            { name: 'capitalPoints', type: 'INTEGER' },
-
-            // Clan Capital Districts
-            { name: 'lvlCapitalPeak', type: 'INTEGER' },
-            { name: 'lvlBarbarianCamp', type: 'INTEGER' },
-            { name: 'lvlWizardValley', type: 'INTEGER' },
-            { name: 'lvlBalloonLagoon', type: 'INTEGER' },
-            { name: 'lvlBuildersWorkshop', type: 'INTEGER' },
-            { name: 'lvlDragonCliffs', type: 'INTEGER' },
-            { name: 'lvlGolemQuarry', type: 'INTEGER' },
-            { name: 'lvlSkeletonPark', type: 'INTEGER' },
-            { name: 'lvlGoblinMines', type: 'INTEGER' }
+            { name: 'key', type: 'TEXT' },
+            { name: 'value', type: 'INTEGER' }
         ],
-        ['season']
+        ['season', 'key']
     );
-
 
     // Table 2: A02_ClanMembers
     // Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/members || https://api.clashofclans.com/v1/players/%23{playerTag}
@@ -1378,14 +1360,14 @@ function tableInfo(db) {
             
             { name: 'dateLogged', type: 'TEXT' },
             { name: 'achievementName', type: 'TEXT' },
-            { name: 'achievementInt', type: 'INTEGER' }   
+            { name: 'achievementValue', type: 'INTEGER' }   
         ],
         ['dateLogged', 'achievementName']
     );
 }
 
 // Get db name from command line argument
-const dbFileName = "TEMPORARYNAME.db";
+const dbFileName = "DEVTEST.db";
 if (!dbFileName) {
     console.error('Please specify a database file name.');
     process.exit(1);

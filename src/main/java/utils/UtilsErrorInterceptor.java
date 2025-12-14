@@ -8,14 +8,14 @@ import discordbot.logs.DiscordLog;
 /**
  * Custom PrintStream that intercepts System.err and logs to Discord
  */
-public class ErrorInterceptor extends PrintStream {
+public class UtilsErrorInterceptor extends PrintStream {
     private final DiscordLog logger;
     private final PrintStream original;
     private final StringBuilder lineBuffer = new StringBuilder();
     private static final ThreadLocal<Boolean> isIntercepting = ThreadLocal.withInitial(() -> false);
     private static PrintStream originalErr;
 
-    public ErrorInterceptor(OutputStream out, DiscordLog logger, PrintStream original) {
+    public UtilsErrorInterceptor(OutputStream out, DiscordLog logger, PrintStream original) {
         super(out, true);
         this.logger = logger;
         this.original = original;
@@ -99,7 +99,7 @@ public class ErrorInterceptor extends PrintStream {
     public static void setupErrorInterception(DiscordLog logger) {
         if (originalErr == null) {
             originalErr = System.err;
-            ErrorInterceptor interceptor = new ErrorInterceptor(originalErr, logger, originalErr);
+            UtilsErrorInterceptor interceptor = new UtilsErrorInterceptor(originalErr, logger, originalErr);
             System.setErr(interceptor);
         }
     }

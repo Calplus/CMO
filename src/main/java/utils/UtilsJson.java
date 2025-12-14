@@ -2,7 +2,7 @@ package utils;
 
 import com.google.gson.JsonObject;
 
-public class JsonUtils {
+public class UtilsJson {
     /**
      * Safely gets a string value from JSON, returns null if not present
      */
