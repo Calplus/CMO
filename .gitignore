@@ -59,7 +59,8 @@ dkms.conf
 
 # Runtime Files
 /database/
-/src/config/
+/src/config/clans/
+/src/main/java/temp/
 /target/
 /.vscode/
 /.vscode

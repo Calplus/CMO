@@ -5,12 +5,16 @@ const path = require('path');
 /**
  * Sends log messages to a Discord channel via the Discord bot.
  * Messages are queued and processed sequentially to maintain order.
+ * Rate limited to 5 messages per 5 seconds.
  */
 class DiscordLog {
     constructor() {
         this.loadConfig();
         this.messageQueue = [];
         this.isProcessing = false;
+        this.messageTimestamps = [];
+        this.MAX_MESSAGES_PER_WINDOW = 5;
+        this.RATE_LIMIT_WINDOW_MS = 5000; // 5 seconds
     }
 
     /**
@@ -36,6 +40,7 @@ class DiscordLog {
 
         this.botToken = config.DISCORD_BOT_TOKEN;
         this.channelId = config.DISCORD_LOG_CHANNELID;
+        this.adminUserId = config.DISCORD_ADMIN_USERID;
 
         if (!this.botToken) {
             throw new Error('DISCORD_BOT_TOKEN not found in .env file');
@@ -72,6 +77,29 @@ class DiscordLog {
         }
         
         return 'CLI';
+    }
+
+    /**
+     * Checks if we can send a message based on rate limits
+     * @returns {boolean} - True if we can send, false if we need to wait
+     */
+    canSendMessage() {
+        const currentTime = Date.now();
+        
+        // Remove timestamps older than the rate limit window
+        this.messageTimestamps = this.messageTimestamps.filter(
+            timestamp => currentTime - timestamp <= this.RATE_LIMIT_WINDOW_MS
+        );
+        
+        // Check if we've hit the limit
+        return this.messageTimestamps.length < this.MAX_MESSAGES_PER_WINDOW;
+    }
+    
+    /**
+     * Records a message send timestamp
+     */
+    recordMessageSent() {
+        this.messageTimestamps.push(Date.now());
     }
 
     /**
@@ -154,7 +182,7 @@ class DiscordLog {
     }
 
     /**
-     * Processes the message queue sequentially
+     * Processes the message queue sequentially with rate limiting
      */
     async processQueue() {
         if (this.isProcessing || this.messageQueue.length === 0) {
@@ -164,8 +192,18 @@ class DiscordLog {
         this.isProcessing = true;
 
         while (this.messageQueue.length > 0) {
+            // Check rate limit
+            if (!this.canSendMessage()) {
+                // Wait a bit before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+            }
+            
             const { message, resolve } = this.messageQueue.shift();
             const success = await this.sendMessage(message);
+            if (success) {
+                this.recordMessageSent();
+            }
             resolve(success);
         }
 
@@ -197,13 +235,19 @@ class DiscordLog {
     }
 
     /**
-     * Sends an error log message to the Discord channel
+     * Sends an error log message to the Discord channel with admin user ping
      * @param {string} message - The error message to send
      * @returns {Promise<boolean>} - True if successful, false otherwise
      */
     async logError(message) {
         const filename = this.getCallerFilename();
-        const formattedMessage = this.formatMessage('🔴', 'ERROR', message, filename);
+        let formattedMessage = this.formatMessage('🔴', 'ERROR', message, filename);
+        
+        // Add admin user ping if configured
+        if (this.adminUserId) {
+            formattedMessage = `<@${this.adminUserId}> ${formattedMessage}`;
+        }
+        
         console.error(formattedMessage);
         return await this.queueMessage(formattedMessage);
     }

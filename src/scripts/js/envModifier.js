@@ -84,6 +84,12 @@ async function main() {
             key: 'DISCORD_LOG_CHANNELID',
             promptText: 'Enter your Discord Log Channel ID: ',
             validate: (input) => !!input && /^\d+$/.test(input)
+        },
+        
+        {
+            key: 'DISCORD_ADMIN_USERID',
+            promptText: 'Enter your Discord Admin User ID: ',
+            validate: (input) => !!input && /^\d+$/.test(input)
         }
     ];
 

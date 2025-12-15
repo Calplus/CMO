@@ -16,18 +16,25 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.LinkedList;
+import java.util.Queue;
 
 /**
  * Sends log messages to a Discord channel via the Discord bot.
  * Messages are queued and processed sequentially to maintain order.
+ * Rate limited to 5 messages per 5 seconds.
  */
 public class DiscordLog {
     private String botToken;
     private String channelId;
+    private String adminUserId;
     private String discordApiUrl;
     private final BlockingQueue<QueuedMessage> messageQueue;
     private final AtomicBoolean isProcessing;
     private final HttpClient httpClient;
+    private final Queue<Long> messageTimestamps;
+    private static final int MAX_MESSAGES_PER_WINDOW = 5;
+    private static final long RATE_LIMIT_WINDOW_MS = 5000; // 5 seconds
 
     private static class QueuedMessage {
         String message;
@@ -43,6 +50,7 @@ public class DiscordLog {
         this.messageQueue = new LinkedBlockingQueue<>();
         this.isProcessing = new AtomicBoolean(false);
         this.httpClient = HttpClient.newHttpClient();
+        this.messageTimestamps = new LinkedList<>();
         loadConfig();
     }
 
@@ -67,6 +75,7 @@ public class DiscordLog {
 
             this.botToken = config.get("DISCORD_BOT_TOKEN");
             this.channelId = config.get("DISCORD_LOG_CHANNELID");
+            this.adminUserId = config.get("DISCORD_ADMIN_USERID");
 
             if (this.botToken == null || this.botToken.isEmpty()) {
                 throw new RuntimeException("DISCORD_BOT_TOKEN not found in .env file");
@@ -168,7 +177,31 @@ public class DiscordLog {
     }
 
     /**
-     * Processes the message queue sequentially
+     * Checks if we can send a message based on rate limits
+     * @return true if we can send, false if we need to wait
+     */
+    private synchronized boolean canSendMessage() {
+        long currentTime = System.currentTimeMillis();
+        
+        // Remove timestamps older than the rate limit window
+        while (!messageTimestamps.isEmpty() && 
+               currentTime - messageTimestamps.peek() > RATE_LIMIT_WINDOW_MS) {
+            messageTimestamps.poll();
+        }
+        
+        // Check if we've hit the limit
+        return messageTimestamps.size() < MAX_MESSAGES_PER_WINDOW;
+    }
+    
+    /**
+     * Records a message send timestamp
+     */
+    private synchronized void recordMessageSent() {
+        messageTimestamps.offer(System.currentTimeMillis());
+    }
+
+    /**
+     * Processes the message queue sequentially with rate limiting
      */
     private void processQueue() {
         if (!isProcessing.compareAndSet(false, true)) {
@@ -178,9 +211,24 @@ public class DiscordLog {
         CompletableFuture.runAsync(() -> {
             try {
                 while (!messageQueue.isEmpty()) {
+                    // Check rate limit
+                    if (!canSendMessage()) {
+                        // Wait a bit before retrying
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        continue;
+                    }
+                    
                     QueuedMessage queuedMsg = messageQueue.poll();
                     if (queuedMsg != null) {
                         boolean success = sendMessage(queuedMsg.message);
+                        if (success) {
+                            recordMessageSent();
+                        }
                         queuedMsg.future.complete(success);
                     }
                 }
@@ -219,13 +267,19 @@ public class DiscordLog {
     }
 
     /**
-     * Sends an error log message to the Discord channel
+     * Sends an error log message to the Discord channel with admin user ping
      * @param message The error message to send
      * @return CompletableFuture that resolves to true if successful, false otherwise
      */
     public CompletableFuture<Boolean> logError(String message) {
         String filename = getCallerFilename();
         String formattedMessage = formatMessage("🔴", "ERROR", message, filename);
+        
+        // Add admin user ping if configured
+        if (adminUserId != null && !adminUserId.isEmpty()) {
+            formattedMessage = "<@" + adminUserId + "> " + formattedMessage;
+        }
+        
         System.err.println(formattedMessage);
         return queueMessage(formattedMessage);
     }
