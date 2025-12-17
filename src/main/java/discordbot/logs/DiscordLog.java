@@ -22,7 +22,7 @@ import java.util.Queue;
 /**
  * Sends log messages to a Discord channel via the Discord bot.
  * Messages are queued and processed sequentially to maintain order.
- * Rate limited to 5 messages per 5 seconds.
+ * Reacts to Discord rate limits (429) with retry_after delays.
  */
 public class DiscordLog {
     private String botToken;
@@ -32,9 +32,6 @@ public class DiscordLog {
     private final BlockingQueue<QueuedMessage> messageQueue;
     private final AtomicBoolean isProcessing;
     private final HttpClient httpClient;
-    private final Queue<Long> messageTimestamps;
-    private static final int MAX_MESSAGES_PER_WINDOW = 5;
-    private static final long RATE_LIMIT_WINDOW_MS = 5000; // 5 seconds
 
     private static class QueuedMessage {
         String message;
@@ -50,8 +47,12 @@ public class DiscordLog {
         this.messageQueue = new LinkedBlockingQueue<>();
         this.isProcessing = new AtomicBoolean(false);
         this.httpClient = HttpClient.newHttpClient();
-        this.messageTimestamps = new LinkedList<>();
         loadConfig();
+        
+        // Add shutdown hook to ensure all messages are sent before exit
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            flush();
+        }));
     }
 
     /**
@@ -142,9 +143,9 @@ public class DiscordLog {
     /**
      * Sends a message to the Discord channel
      * @param message The message to send
-     * @return True if successful, false otherwise
+     * @return Retry delay in milliseconds (0 if successful, -1 if failed, >0 if rate limited)
      */
-    private boolean sendMessage(String message) {
+    private long sendMessage(String message) {
         try {
             String payload = String.format("{\"content\":\"%s\"}", 
                 message.replace("\\", "\\\\")
@@ -163,45 +164,49 @@ public class DiscordLog {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200 || response.statusCode() == 201) {
-                return true;
+                return 0; // Success
+            } else if (response.statusCode() == 429) {
+                // Rate limited - parse retry_after
+                System.err.println("Failed to send message to Discord. Status code: " + response.statusCode());
+                System.err.println("Response: " + response.body());
+                
+                try {
+                    String body = response.body();
+                    // Parse JSON to extract retry_after
+                    int retryAfterIndex = body.indexOf("\"retry_after\"");
+                    if (retryAfterIndex != -1) {
+                        int colonIndex = body.indexOf(":", retryAfterIndex);
+                        int commaIndex = body.indexOf(",", colonIndex);
+                        int braceIndex = body.indexOf("}", colonIndex);
+                        int endIndex = commaIndex != -1 ? Math.min(commaIndex, braceIndex != -1 ? braceIndex : Integer.MAX_VALUE) : braceIndex;
+                        
+                        if (colonIndex != -1 && endIndex != -1) {
+                            String retryAfterStr = body.substring(colonIndex + 1, endIndex).trim();
+                            double retryAfterSeconds = Double.parseDouble(retryAfterStr);
+                            long retryAfterMs = (long) (retryAfterSeconds * 1000);
+                            return retryAfterMs;
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error parsing retry_after: " + e.getMessage());
+                }
+                
+                // Default to 1 second if parsing fails
+                return 1000;
             } else {
                 System.err.println("Failed to send message to Discord. Status code: " + response.statusCode());
                 System.err.println("Response: " + response.body());
-                return false;
+                return -1; // Failed
             }
 
         } catch (Exception e) {
             System.err.println("Error sending message to Discord: " + e.getMessage());
-            return false;
+            return -1; // Failed
         }
     }
 
     /**
-     * Checks if we can send a message based on rate limits
-     * @return true if we can send, false if we need to wait
-     */
-    private synchronized boolean canSendMessage() {
-        long currentTime = System.currentTimeMillis();
-        
-        // Remove timestamps older than the rate limit window
-        while (!messageTimestamps.isEmpty() && 
-               currentTime - messageTimestamps.peek() > RATE_LIMIT_WINDOW_MS) {
-            messageTimestamps.poll();
-        }
-        
-        // Check if we've hit the limit
-        return messageTimestamps.size() < MAX_MESSAGES_PER_WINDOW;
-    }
-    
-    /**
-     * Records a message send timestamp
-     */
-    private synchronized void recordMessageSent() {
-        messageTimestamps.offer(System.currentTimeMillis());
-    }
-
-    /**
-     * Processes the message queue sequentially with rate limiting
+     * Processes the message queue sequentially with reactive rate limiting
      */
     private void processQueue() {
         if (!isProcessing.compareAndSet(false, true)) {
@@ -209,37 +214,67 @@ public class DiscordLog {
         }
 
         CompletableFuture.runAsync(() -> {
+            boolean interrupted = false;
             try {
                 while (!messageQueue.isEmpty()) {
-                    // Check rate limit
-                    if (!canSendMessage()) {
-                        // Wait a bit before retrying
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        }
-                        continue;
-                    }
-                    
                     QueuedMessage queuedMsg = messageQueue.poll();
                     if (queuedMsg != null) {
-                        boolean success = sendMessage(queuedMsg.message);
-                        if (success) {
-                            recordMessageSent();
+                        try {
+                            // Try to send message, handle rate limiting
+                            long result = sendMessage(queuedMsg.message);
+                            
+                            while (result > 0) {
+                                // Rate limited - wait for retry_after duration
+                                try {
+                                    Thread.sleep(result);
+                                } catch (InterruptedException e) {
+                                    interrupted = true;
+                                    // Continue after interrupt
+                                }
+                                // Retry sending the message
+                                result = sendMessage(queuedMsg.message);
+                            }
+                            
+                            // Complete future: result == 0 means success, result == -1 means failure
+                            queuedMsg.future.complete(result == 0);
+                        } catch (Exception e) {
+                            // Complete the future with failure and continue processing
+                            queuedMsg.future.complete(false);
+                            System.err.println("Error processing message: " + e.getMessage());
                         }
-                        queuedMsg.future.complete(success);
                     }
                 }
+            } catch (Exception e) {
+                System.err.println("Fatal error in queue processing: " + e.getMessage());
             } finally {
                 isProcessing.set(false);
+                
+                // Restore interrupted status if needed
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+                
                 // Check if new messages arrived while we were finishing
                 if (!messageQueue.isEmpty()) {
                     processQueue();
                 }
             }
         });
+    }
+    
+    /**
+     * Waits for all queued messages to be sent
+     */
+    public void flush() {
+        // Wait for queue to be empty and processing to finish
+        while (!messageQueue.isEmpty() || isProcessing.get()) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
     }
 
     /**

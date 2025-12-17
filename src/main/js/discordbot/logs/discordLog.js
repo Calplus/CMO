@@ -5,16 +5,26 @@ const path = require('path');
 /**
  * Sends log messages to a Discord channel via the Discord bot.
  * Messages are queued and processed sequentially to maintain order.
- * Rate limited to 5 messages per 5 seconds.
+ * Reacts to Discord rate limits (429) with retry_after delays.
  */
 class DiscordLog {
     constructor() {
         this.loadConfig();
         this.messageQueue = [];
         this.isProcessing = false;
-        this.messageTimestamps = [];
-        this.MAX_MESSAGES_PER_WINDOW = 5;
-        this.RATE_LIMIT_WINDOW_MS = 5000; // 5 seconds
+        
+        // Add process exit handler to ensure all messages are sent
+        process.on('exit', () => {
+            this.flushSync();
+        });
+        
+        // Handle graceful shutdown signals
+        process.on('SIGINT', () => {
+            this.flush().then(() => process.exit(0));
+        });
+        process.on('SIGTERM', () => {
+            this.flush().then(() => process.exit(0));
+        });
     }
 
     /**
@@ -80,29 +90,6 @@ class DiscordLog {
     }
 
     /**
-     * Checks if we can send a message based on rate limits
-     * @returns {boolean} - True if we can send, false if we need to wait
-     */
-    canSendMessage() {
-        const currentTime = Date.now();
-        
-        // Remove timestamps older than the rate limit window
-        this.messageTimestamps = this.messageTimestamps.filter(
-            timestamp => currentTime - timestamp <= this.RATE_LIMIT_WINDOW_MS
-        );
-        
-        // Check if we've hit the limit
-        return this.messageTimestamps.length < this.MAX_MESSAGES_PER_WINDOW;
-    }
-    
-    /**
-     * Records a message send timestamp
-     */
-    recordMessageSent() {
-        this.messageTimestamps.push(Date.now());
-    }
-
-    /**
      * Formats timestamp with milliseconds
      * @returns {string} - Formatted timestamp
      */
@@ -135,7 +122,7 @@ class DiscordLog {
     /**
      * Sends a message to the Discord channel
      * @param {string} message - The message to send
-     * @returns {Promise<boolean>} - True if successful, false otherwise
+     * @returns {Promise<number>} - 0 if successful, -1 if failed, >0 for retry delay in ms
      */
     sendMessage(message) {
         return new Promise((resolve) => {
@@ -162,18 +149,36 @@ class DiscordLog {
 
                 res.on('end', () => {
                     if (res.statusCode === 200 || res.statusCode === 201) {
-                        resolve(true);
+                        resolve(0); // Success
+                    } else if (res.statusCode === 429) {
+                        // Rate limited - parse retry_after
+                        console.error(`Failed to send message to Discord. Status code: ${res.statusCode}`);
+                        console.error(`Response: ${data}`);
+                        
+                        try {
+                            const response = JSON.parse(data);
+                            if (response.retry_after) {
+                                const retryAfterMs = Math.ceil(response.retry_after * 1000);
+                                resolve(retryAfterMs);
+                                return;
+                            }
+                        } catch (e) {
+                            console.error(`Error parsing retry_after: ${e.message}`);
+                        }
+                        
+                        // Default to 1 second if parsing fails
+                        resolve(1000);
                     } else {
                         console.error(`Failed to send message to Discord. Status code: ${res.statusCode}`);
                         console.error(`Response: ${data}`);
-                        resolve(false);
+                        resolve(-1); // Failed
                     }
                 });
             });
 
             req.on('error', (error) => {
                 console.error(`Error sending message to Discord: ${error.message}`);
-                resolve(false);
+                resolve(-1); // Failed
             });
 
             req.write(payload);
@@ -182,7 +187,7 @@ class DiscordLog {
     }
 
     /**
-     * Processes the message queue sequentially with rate limiting
+     * Processes the message queue sequentially with reactive rate limiting
      */
     async processQueue() {
         if (this.isProcessing || this.messageQueue.length === 0) {
@@ -191,23 +196,68 @@ class DiscordLog {
 
         this.isProcessing = true;
 
-        while (this.messageQueue.length > 0) {
-            // Check rate limit
-            if (!this.canSendMessage()) {
-                // Wait a bit before retrying
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                continue;
+        try {
+            while (this.messageQueue.length > 0) {
+                const queueItem = this.messageQueue.shift();
+                if (!queueItem) continue;
+                
+                const { message, resolve } = queueItem;
+                
+                try {
+                    // Try to send message, handle rate limiting
+                    let result = await this.sendMessage(message);
+                    
+                    while (result > 0) {
+                        // Rate limited - wait for retry_after duration
+                        await new Promise(resolveWait => setTimeout(resolveWait, result));
+                        // Retry sending the message
+                        result = await this.sendMessage(message);
+                    }
+                    
+                    // Complete promise: result == 0 means success, result == -1 means failure
+                    resolve(result === 0);
+                } catch (error) {
+                    // Complete the promise with failure and continue processing
+                    console.error(`Error processing message: ${error.message}`);
+                    resolve(false);
+                }
             }
+        } catch (error) {
+            console.error(`Fatal error in queue processing: ${error.message}`);
+        } finally {
+            this.isProcessing = false;
             
-            const { message, resolve } = this.messageQueue.shift();
-            const success = await this.sendMessage(message);
-            if (success) {
-                this.recordMessageSent();
+            // Check if new messages arrived while we were finishing
+            if (this.messageQueue.length > 0) {
+                // Use setImmediate to avoid recursion depth issues
+                setImmediate(() => this.processQueue());
             }
-            resolve(success);
         }
-
-        this.isProcessing = false;
+    }
+    
+    /**
+     * Waits for all queued messages to be sent (async)
+     * @returns {Promise<void>}
+     */
+    async flush() {
+        while (this.messageQueue.length > 0 || this.isProcessing) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    }
+    
+    /**
+     * Synchronous flush for process.on('exit') handler
+     * Uses busy-wait since async operations don't work in exit handler
+     */
+    flushSync() {
+        const start = Date.now();
+        const timeout = 5000; // 5 second timeout
+        
+        while ((this.messageQueue.length > 0 || this.isProcessing) && (Date.now() - start < timeout)) {
+            // Busy wait - not ideal but necessary for synchronous exit handler
+            const end = Date.now() + 10;
+            while (Date.now() < end) {}
+        }
     }
 
     /**

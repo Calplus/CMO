@@ -86,4 +86,26 @@ public class UtilsDatabase {
             pstmt.setBoolean(parameterIndex, value);
         }
     }
+
+    /**
+     * Helper to get nullable Boolean from ResultSet
+     * SQLite stores BOOLEAN as INTEGER (0/1), so this method handles the conversion
+     * @param rs The ResultSet to get the value from
+     * @param columnName The column name
+     * @return The Boolean value, or null if the column is NULL
+     * @throws SQLException if a database error occurs
+     */
+    public static Boolean getNullableBoolean(java.sql.ResultSet rs, String columnName) throws SQLException {
+        Object value = rs.getObject(columnName);
+        if (value == null) {
+            return null;
+        } else if (value instanceof Integer) {
+            // SQLite stores BOOLEAN as INTEGER (0/1)
+            return ((Integer) value) != 0 ? Boolean.TRUE : Boolean.FALSE;
+        } else if (value instanceof Boolean) {
+            return (Boolean) value;
+        } else {
+            return null;
+        }
+    }
 }

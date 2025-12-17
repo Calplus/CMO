@@ -1214,34 +1214,6 @@ public class A02_ClanMembers {
     }
     
     /**
-     * Marks players who left the clan
-     */
-    private void markPlayersWhoLeft(Set<String> currentMembersInClan, Set<String> currentMembersInDB, String currentDateTime) throws SQLException {
-        Set<String> playersWhoLeft = new HashSet<>(currentMembersInDB);
-        playersWhoLeft.removeAll(currentMembersInClan);
-        
-        if (playersWhoLeft.isEmpty()) return;
-        
-        String sql = "UPDATE " + TABLE_NAME + " SET dateLeft = ? WHERE playerTag = ? AND dateLeft IS NULL";
-        
-        try (Connection conn = DriverManager.getConnection(UtilsDatabase.getConnectionUrl(dbName));
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            for (String playerTag : playersWhoLeft) {
-                pstmt.setString(1, currentDateTime);
-                pstmt.setString(2, playerTag);
-                pstmt.addBatch();
-            }
-            
-            pstmt.executeBatch();
-            
-            String msg = "Marked " + playersWhoLeft.size() + " player(s) as left";
-            System.out.println(msg);
-            discordLogger.logInfo(msg);
-        }
-    }
-    
-    /**
      * Main update method
      */
     public void updateDatabase(List<String> playerTags) throws SQLException, IOException, InterruptedException {
@@ -1264,6 +1236,11 @@ public class A02_ClanMembers {
         int updates = 0;
         int inserts = 0;
         int rejoins = 0;
+        int left = 0;
+        
+        List<String> newPlayerNames = new ArrayList<>();
+        List<String> rejoinPlayerNames = new ArrayList<>();
+        List<String> leftPlayerNames = new ArrayList<>();
         
         // Process each current member
         for (String playerTag : currentMemberTags) {
@@ -1279,9 +1256,15 @@ public class A02_ClanMembers {
                 
                 upsertPlayer(playerTag, parsedData, isNewPlayer, isRejoin, dataChanged, currentDateTime);
                 
-                if (isNewPlayer) inserts++;
-                else if (isRejoin) rejoins++;
-                else updates++;
+                if (isNewPlayer) {
+                    inserts++;
+                    newPlayerNames.add(parsedData.name + " (#" + playerTag + ")");
+                } else if (isRejoin) {
+                    rejoins++;
+                    rejoinPlayerNames.add(parsedData.name + " (#" + playerTag + ")");
+                } else {
+                    updates++;
+                }
                 
             } catch (Exception e) {
                 String errMsg = "Failed to process player " + playerTag + ": " + e.getMessage();
@@ -1291,12 +1274,69 @@ public class A02_ClanMembers {
             }
         }
         
-        // Mark players who left
-        markPlayersWhoLeft(currentMembersInClan, currentMembersInDB, currentDateTime);
+        // Mark players who left (in DB but not in current clan)
+        Set<String> playersWhoLeft = new HashSet<>(currentMembersInDB);
+        playersWhoLeft.removeAll(currentMembersInClan);
         
-        String successMsg = "Database update complete: " + inserts + " new, " + updates + " updated, " + rejoins + " rejoined";
-        System.out.println(successMsg);
-        discordLogger.logSuccess(successMsg);
+        if (!playersWhoLeft.isEmpty()) {
+            String url = UtilsDatabase.getConnectionUrl(dbName);
+            String selectSql = "SELECT name FROM " + TABLE_NAME + " WHERE playerTag = ? AND dateLeft IS NULL";
+            String updateSql = "UPDATE " + TABLE_NAME + " SET dateLeft = ? WHERE playerTag = ? AND dateLeft IS NULL";
+            
+            try (Connection conn = DriverManager.getConnection(url);
+                 PreparedStatement selectStmt = conn.prepareStatement(selectSql);
+                 PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                
+                for (String playerTag : playersWhoLeft) {
+                    // Get player name before updating
+                    selectStmt.setString(1, playerTag);
+                    try (ResultSet rs = selectStmt.executeQuery()) {
+                        String playerName = "Unknown";
+                        if (rs.next()) {
+                            playerName = rs.getString("name");
+                        }
+                        leftPlayerNames.add(playerName + " (#" + playerTag + ")");
+                    }
+                    
+                    // Update dateLeft
+                    updateStmt.setString(1, currentDateTime);
+                    updateStmt.setString(2, playerTag);
+                    updateStmt.addBatch();
+                    left++;
+                }
+                
+                updateStmt.executeBatch();
+            }
+        }
+        
+        // Build detailed success message
+        StringBuilder successMsg = new StringBuilder("Database update complete: ");
+        successMsg.append(inserts).append(" new, ");
+        successMsg.append(left).append(" left, ");
+        successMsg.append(updates).append(" updated, ");
+        successMsg.append(rejoins).append(" rejoined");
+        
+        System.out.println(successMsg.toString());
+        discordLogger.logSuccess(successMsg.toString());
+        
+        // Log detailed player lists
+        if (!newPlayerNames.isEmpty()) {
+            String newMsg = "New players joined: " + String.join(", ", newPlayerNames);
+            System.out.println(newMsg);
+            discordLogger.logInfo(newMsg);
+        }
+        
+        if (!rejoinPlayerNames.isEmpty()) {
+            String rejoinMsg = "Players rejoined: " + String.join(", ", rejoinPlayerNames);
+            System.out.println(rejoinMsg);
+            discordLogger.logInfo(rejoinMsg);
+        }
+        
+        if (!leftPlayerNames.isEmpty()) {
+            String leftMsg = "Players left: " + String.join(", ", leftPlayerNames);
+            System.out.println(leftMsg);
+            discordLogger.logInfo(leftMsg);
+        }
     }
     
     /**
@@ -1753,7 +1793,7 @@ public class A02_ClanMembers {
             this.attackWins = (Integer) rs.getObject("attackWins");
             this.defenseWins = (Integer) rs.getObject("defenseWins");
             this.clanRole = rs.getString("clanRole");
-            this.warPreference = (Boolean) rs.getObject("warPreference");
+            this.warPreference = UtilsDatabase.getNullableBoolean(rs, "warPreference");
             this.donations = (Integer) rs.getObject("donations");
             this.donationsReceived = (Integer) rs.getObject("donationsReceived");
             this.clanCapitalContributions = (Integer) rs.getObject("clanCapitalContributions");
