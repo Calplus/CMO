@@ -9,57 +9,73 @@ const path = require('path');
  */
 class DiscordLog {
     constructor() {
-        this.loadConfig();
+        this.discordEnabled = this.loadConfig();
         this.messageQueue = [];
         this.isProcessing = false;
         
         // Add process exit handler to ensure all messages are sent
-        process.on('exit', () => {
-            this.flushSync();
-        });
-        
-        // Handle graceful shutdown signals
-        process.on('SIGINT', () => {
-            this.flush().then(() => process.exit(0));
-        });
-        process.on('SIGTERM', () => {
-            this.flush().then(() => process.exit(0));
-        });
+        if (this.discordEnabled) {
+            process.on('exit', () => {
+                this.flushSync();
+            });
+            
+            // Handle graceful shutdown signals
+            process.on('SIGINT', () => {
+                this.flush().then(() => process.exit(0));
+            });
+            process.on('SIGTERM', () => {
+                this.flush().then(() => process.exit(0));
+            });
+        }
     }
 
     /**
      * Loads the Discord bot token and channel ID from the .env file
+     * @returns {boolean} - True if Discord logging is enabled, false otherwise
      */
     loadConfig() {
         const envPath = path.resolve(__dirname, '../../../../../.env');
         
         if (!fs.existsSync(envPath)) {
-            throw new Error('.env file not found');
+            console.error('WARNING: .env file not found. Discord logging disabled.');
+            return false;
         }
 
-        const envContent = fs.readFileSync(envPath, 'utf8');
-        const envLines = envContent.split('\n');
-        
-        const config = {};
-        envLines.forEach(line => {
-            const [key, ...valueParts] = line.split('=');
-            if (key && valueParts.length > 0) {
-                config[key.trim()] = valueParts.join('=').trim();
+        try {
+            const envContent = fs.readFileSync(envPath, 'utf8');
+            const envLines = envContent.split('\n');
+            
+            const config = {};
+            envLines.forEach(line => {
+                const [key, ...valueParts] = line.split('=');
+                if (key && valueParts.length > 0) {
+                    config[key.trim()] = valueParts.join('=').trim();
+                }
+            });
+
+            this.botToken = config.DISCORD_BOT_TOKEN;
+            this.channelId = config.DISCORD_LOG_CHANNELID;
+            this.adminUserId = config.DISCORD_ADMIN_USERID;
+
+            if (!this.botToken) {
+                console.error('WARNING: DISCORD_BOT_TOKEN not found in .env file. Discord logging disabled.');
+                return false;
             }
-        });
+            if (!this.channelId) {
+                console.error('WARNING: DISCORD_LOG_CHANNELID not found in .env file. Discord logging disabled.');
+                return false;
+            }
+            
+            if (!this.adminUserId) {
+                console.error('INFO: DISCORD_ADMIN_USERID not configured. Admin pings will be skipped.');
+            }
 
-        this.botToken = config.DISCORD_BOT_TOKEN;
-        this.channelId = config.DISCORD_LOG_CHANNELID;
-        this.adminUserId = config.DISCORD_ADMIN_USERID;
-
-        if (!this.botToken) {
-            throw new Error('DISCORD_BOT_TOKEN not found in .env file');
+            this.discordApiUrl = `/api/v10/channels/${this.channelId}/messages`;
+            return true;
+        } catch (error) {
+            console.error(`WARNING: Failed to read .env file. Discord logging disabled. Error: ${error.message}`);
+            return false;
         }
-        if (!this.channelId) {
-            throw new Error('DISCORD_LOG_CHANNELID not found in .env file');
-        }
-
-        this.discordApiUrl = `/api/v10/channels/${this.channelId}/messages`;
     }
 
     /**
@@ -267,6 +283,12 @@ class DiscordLog {
      */
     queueMessage(message) {
         return new Promise((resolve) => {
+            // If Discord is disabled, resolve immediately with false
+            if (!this.discordEnabled) {
+                resolve(false);
+                return;
+            }
+            
             this.messageQueue.push({ message, resolve });
             this.processQueue();
         });

@@ -160,23 +160,17 @@ public class A01_ClanInfo {
         UtilsKeyValue.addTextIfChanged("description", UtilsJson.getJsonString(clanData, "description"), lastValues, textPairs);
         UtilsKeyValue.addTextIfChanged("warFrequency", UtilsJson.getJsonString(clanData, "warFrequency"), lastValues, textPairs);
         
+        // Badge URLs
+        UtilsKeyValue.addNestedTextIfChanged("clanBannerUrl", clanData, "badgeUrls", "large", lastValues, textPairs);
+        
         // Location
-        if (clanData.has("location") && clanData.get("location").isJsonObject()) {
-            JsonObject location = clanData.getAsJsonObject("location");
-            UtilsKeyValue.addTextIfChanged("locationName", UtilsJson.getJsonString(location, "name"), lastValues, textPairs);
-        }
+        UtilsKeyValue.addNestedTextIfChanged("locationName", clanData, "location", "name", lastValues, textPairs);
         
         // Chat language
-        if (clanData.has("chatLanguage") && clanData.get("chatLanguage").isJsonObject()) {
-            JsonObject language = clanData.getAsJsonObject("chatLanguage");
-            UtilsKeyValue.addTextIfChanged("chatLanguage", UtilsJson.getJsonString(language, "name"), lastValues, textPairs);
-        }
+        UtilsKeyValue.addNestedTextIfChanged("chatLanguage", clanData, "chatLanguage", "name", lastValues, textPairs);
         
         // CWL League
-        if (clanData.has("warLeague") && clanData.get("warLeague").isJsonObject()) {
-            JsonObject warLeague = clanData.getAsJsonObject("warLeague");
-            UtilsKeyValue.addTextIfChanged("CWLLeagueName", UtilsJson.getJsonString(warLeague, "name"), lastValues, textPairs);
-        }
+        UtilsKeyValue.addNestedTextIfChanged("CWLLeagueName", clanData, "warLeague", "name", lastValues, textPairs);
 
         // INTEGER/BOOLEAN values
         UtilsKeyValue.addIntIfChanged("memberCount", UtilsJson.getJsonInt(clanData, "members"), lastValues, intPairs);

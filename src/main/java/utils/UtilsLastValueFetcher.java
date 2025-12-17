@@ -25,10 +25,12 @@ public class UtilsLastValueFetcher {
         String url = UtilsDatabase.getConnectionUrl(dbName);
         
         // Query to get the most recent value for each unique key
-        String sql = "SELECT key, value FROM " + tableName + " " +
-                    "WHERE dateLogged = (" +
-                    "  SELECT MAX(dateLogged) FROM " + tableName + " " +
-                    "  WHERE key = " + tableName + ".key" +
+        String sql = "SELECT key, value FROM " + tableName + " t1 " +
+                    "WHERE id = (" +
+                    "  SELECT id FROM " + tableName + " t2 " +
+                    "  WHERE t2.key = t1.key " +
+                    "  ORDER BY dateLogged DESC, id DESC " +
+                    "  LIMIT 1" +
                     ")";
         
         try (Connection conn = DriverManager.getConnection(url);
@@ -58,10 +60,12 @@ public class UtilsLastValueFetcher {
         String url = UtilsDatabase.getConnectionUrl(dbName);
         
         // Query to get the most recent value for each unique key
-        String sql = "SELECT key, value FROM " + tableName + " " +
-                    "WHERE dateLogged = (" +
-                    "  SELECT MAX(dateLogged) FROM " + tableName + " " +
-                    "  WHERE key = " + tableName + ".key" +
+        String sql = "SELECT key, value FROM " + tableName + " t1 " +
+                    "WHERE id = (" +
+                    "  SELECT id FROM " + tableName + " t2 " +
+                    "  WHERE t2.key = t1.key " +
+                    "  ORDER BY dateLogged DESC, id DESC " +
+                    "  LIMIT 1" +
                     ")";
         
         try (Connection conn = DriverManager.getConnection(url);

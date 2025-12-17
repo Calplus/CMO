@@ -7,6 +7,8 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 
+import com.google.gson.JsonObject;
+
 import discordbot.logs.DiscordLog;
 
 /**
@@ -52,6 +54,44 @@ public class UtilsKeyValue {
         Integer lastValue = lastValues.getIntValue(key);
         if (!Objects.equals(newValue, lastValue)) {
             pairs.add(new KeyValuePair(key, newValue));
+        }
+    }
+
+    /**
+     * Adds a text key-value pair from a nested JSON object if it has changed
+     * @param key The key name for the database
+     * @param parentObject The parent JSON object
+     * @param nestedObjectKey The key of the nested object in the parent
+     * @param nestedValueKey The key of the value within the nested object
+     * @param lastValues The last stored values
+     * @param pairs The list to add the pair to if changed
+     */
+    public static void addNestedTextIfChanged(String key, JsonObject parentObject, String nestedObjectKey, 
+                                              String nestedValueKey, UtilsLastValueFetcher.CombinedLastValues lastValues, 
+                                              List<KeyValuePair> pairs) {
+        if (parentObject != null && parentObject.has(nestedObjectKey) && parentObject.get(nestedObjectKey).isJsonObject()) {
+            JsonObject nestedObject = parentObject.getAsJsonObject(nestedObjectKey);
+            String newValue = UtilsJson.getJsonString(nestedObject, nestedValueKey);
+            addTextIfChanged(key, newValue, lastValues, pairs);
+        }
+    }
+
+    /**
+     * Adds an integer key-value pair from a nested JSON object if it has changed
+     * @param key The key name for the database
+     * @param parentObject The parent JSON object
+     * @param nestedObjectKey The key of the nested object in the parent
+     * @param nestedValueKey The key of the value within the nested object
+     * @param lastValues The last stored values
+     * @param pairs The list to add the pair to if changed
+     */
+    public static void addNestedIntIfChanged(String key, JsonObject parentObject, String nestedObjectKey, 
+                                             String nestedValueKey, UtilsLastValueFetcher.CombinedLastValues lastValues, 
+                                             List<KeyValuePair> pairs) {
+        if (parentObject != null && parentObject.has(nestedObjectKey) && parentObject.get(nestedObjectKey).isJsonObject()) {
+            JsonObject nestedObject = parentObject.getAsJsonObject(nestedObjectKey);
+            Integer newValue = UtilsJson.getJsonInt(nestedObject, nestedValueKey);
+            addIntIfChanged(key, newValue, lastValues, pairs);
         }
     }
 

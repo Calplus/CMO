@@ -16,8 +16,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.LinkedList;
-import java.util.Queue;
 
 /**
  * Sends log messages to a Discord channel via the Discord bot.
@@ -32,6 +30,7 @@ public class DiscordLog {
     private final BlockingQueue<QueuedMessage> messageQueue;
     private final AtomicBoolean isProcessing;
     private final HttpClient httpClient;
+    private boolean discordEnabled;
 
     private static class QueuedMessage {
         String message;
@@ -47,22 +46,26 @@ public class DiscordLog {
         this.messageQueue = new LinkedBlockingQueue<>();
         this.isProcessing = new AtomicBoolean(false);
         this.httpClient = HttpClient.newHttpClient();
-        loadConfig();
+        this.discordEnabled = loadConfig();
         
         // Add shutdown hook to ensure all messages are sent before exit
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            flush();
-        }));
+        if (discordEnabled) {
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                flush();
+            }));
+        }
     }
 
     /**
      * Loads the Discord bot token and channel ID from the .env file
+     * @return true if Discord logging is enabled, false otherwise
      */
-    private void loadConfig() {
+    private boolean loadConfig() {
         Path envPath = Paths.get(System.getProperty("user.dir"), ".env");
 
         if (!Files.exists(envPath)) {
-            throw new RuntimeException(".env file not found at: " + envPath);
+            System.err.println("WARNING: .env file not found. Discord logging disabled.");
+            return false;
         }
 
         try {
@@ -79,16 +82,24 @@ public class DiscordLog {
             this.adminUserId = config.get("DISCORD_ADMIN_USERID");
 
             if (this.botToken == null || this.botToken.isEmpty()) {
-                throw new RuntimeException("DISCORD_BOT_TOKEN not found in .env file");
+                System.err.println("WARNING: DISCORD_BOT_TOKEN not found in .env file. Discord logging disabled.");
+                return false;
             }
             if (this.channelId == null || this.channelId.isEmpty()) {
-                throw new RuntimeException("DISCORD_LOG_CHANNELID not found in .env file");
+                System.err.println("WARNING: DISCORD_LOG_CHANNELID not found in .env file. Discord logging disabled.");
+                return false;
+            }
+            
+            if (this.adminUserId == null || this.adminUserId.isEmpty()) {
+                System.err.println("INFO: DISCORD_ADMIN_USERID not configured. Admin pings will be skipped.");
             }
 
             this.discordApiUrl = "https://discord.com/api/v10/channels/" + this.channelId + "/messages";
+            return true;
 
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read .env file", e);
+            System.err.println("WARNING: Failed to read .env file. Discord logging disabled. Error: " + e.getMessage());
+            return false;
         }
     }
 
@@ -284,6 +295,13 @@ public class DiscordLog {
      */
     private CompletableFuture<Boolean> queueMessage(String message) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
+        
+        // If Discord is disabled, complete immediately with false
+        if (!discordEnabled) {
+            future.complete(false);
+            return future;
+        }
+        
         messageQueue.add(new QueuedMessage(message, future));
         processQueue();
         return future;

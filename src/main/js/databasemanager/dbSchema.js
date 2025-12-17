@@ -793,7 +793,7 @@ function tableInfo(db) {
     );
 
     // Table 13: B03_CWLPlayerLog
-    // Primary database: A4_CWLAttackDetails
+    // Primary database: A04_CWLAttackDetails
     // DB format: Stores history of the player's performance each CWL.
     // DB Ordering: season name > highest performing player
     
@@ -898,8 +898,77 @@ function tableInfo(db) {
         ['season', 'playerTag']
     );
 
-    // Table 14: C01_ClanSeasonStats
-    // Primary database: A1_ClanInfo || A2_ClanMembers
+    // Table 14: B04_CWLSeasonLog
+    // Primary database: A03_CWLWarDetails || A04_CWLAttackDetails
+    // DB format: Stores each team's performance and stats in the CWL group per CWL season
+    // DB Ordering: season number
+    
+    createOrUpdateTable(
+        db,
+        'B04_CWLSeasonLog',
+        [
+            { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
+            { name: 'season', type: 'TEXT' },
+
+            // CWL High Level Overview
+            { name: 'cwlLeague', type: 'TEXT' },
+            { name: 'cwlPosition', type: 'INTEGER' },
+            { name: 'cwlPromotion', type: 'INTEGER' },
+            { name: 'cwlWarSize', type: 'INTEGER' },
+            { name: 'cwlWarsWon', type: 'INTEGER' },
+            { name: 'cwlTotalWars', type: 'INTEGER' },
+
+            //  Clan High Level Overview
+            { name: 'clanTag', type: 'TEXT' },
+            { name: 'clanName', type: 'TEXT' },
+            { name: 'clanLevel', type: 'INTEGER' },
+            { name: 'clanBannerUrl', type: 'TEXT' },
+            { name: 'estClanXpGain', type: 'INTEGER' },
+
+            // CWL Stats
+            { name: 'cwlStarsEarned', type: 'INTEGER' },
+            { name: 'cwlStarsMax', type: 'INTEGER' },
+            { name: 'cwlStarsPercentage', type: 'REAL' },
+
+            { name: 'cwlDamageEarned', type: 'INTEGER' },
+            { name: 'cwlDamageMax', type: 'INTEGER' },
+            { name: 'cwlDamagePercentage', type: 'REAL' },
+
+            { name: 'cwlXpEarned', type: 'INTEGER' },
+
+            { name: 'cwlAttacksUsed', type: 'INTEGER' },
+            { name: 'cwlAttacksMax', type: 'INTEGER' },
+            { name: 'cwlAttacksPercentage', type: 'REAL' },
+
+            { name: 'cwlAvgStarsPerAttack', type: 'REAL' },
+
+            // TH Level Counts
+            { name: 'countTh1', type: 'INTEGER' },
+            { name: 'countTh2', type: 'INTEGER' },
+            { name: 'countTh3', type: 'INTEGER' },
+            { name: 'countTh4', type: 'INTEGER' },
+            { name: 'countTh5', type: 'INTEGER' },
+            { name: 'countTh6', type: 'INTEGER' },
+            { name: 'countTh7', type: 'INTEGER' },
+            { name: 'countTh8', type: 'INTEGER' },
+            { name: 'countTh9', type: 'INTEGER' },
+            { name: 'countTh10', type: 'INTEGER' },
+            { name: 'countTh11', type: 'INTEGER' },
+            { name: 'countTh12', type: 'INTEGER' },
+            { name: 'countTh13', type: 'INTEGER' },
+            { name: 'countTh14', type: 'INTEGER' },
+            { name: 'countTh15', type: 'INTEGER' },
+            { name: 'countTh16', type: 'INTEGER' },
+            { name: 'countTh17', type: 'INTEGER' },
+            { name: 'countTh18', type: 'INTEGER' },
+
+            { name: 'cwlAvgTeamThLevel', type: 'REAL' }
+        ],
+        ['season', 'clanTag']
+    );
+
+    // Table 15: C01_ClanSeasonStats
+    // Primary database: A01_ClanInfo || A02_ClanMembers
     // DB format: Stores summarized clan history (monthly, right after CWL signup ends)
     // DB Ordering: season number
     
@@ -950,8 +1019,8 @@ function tableInfo(db) {
         ['season', 'teamSeason']
     );
 
-    // Table 15: C02_CwlSeasonStats
-    // Primary database: A3_CWLWarDetails || A4_CWLAttackDetails
+    // Table 16: C02_CwlSeasonStats
+    // Primary database: A03_CWLWarDetails || A04_CWLAttackDetails
     // DB format: Stores summarized CWL history (monthly, right after CWL ends)
     // DB Ordering: season number
     
@@ -966,7 +1035,7 @@ function tableInfo(db) {
             // CWL High Level Overview
             { name: 'cwlLeague', type: 'TEXT' },
             { name: 'cwlPosition', type: 'INTEGER' },
-            { name: 'cwlPromotion', type: 'BOOLEAN' },
+            { name: 'cwlPromotion', type: 'INTEGER' },
             { name: 'cwlWarSize', type: 'INTEGER' },
             { name: 'cwlWarsWon', type: 'INTEGER' },
             { name: 'cwlTotalWars', type: 'INTEGER' },
@@ -1010,7 +1079,7 @@ function tableInfo(db) {
         ['season', 'teamSeason']
     );
 
-    // Table 16: C03_ClanWarSeasonStats
+    // Table 17: C03_ClanWarSeasonStats
     // Primary database: A5_ClanWarLog || A6_ClanWarAttackDetails
     // DB format: Stores summarized clan war history (monthly, right before CWL signup ends)
     // DB Ordering: season number
@@ -1061,7 +1130,7 @@ function tableInfo(db) {
         ['season', 'teamSeason']
     );
 
-    // Table 17: C04_WeekendRaidSeasonStats
+    // Table 18: C04_WeekendRaidSeasonStats
     // Primary database: A7_ClanCapitalLog || A8_ClanCapitalAttacks || A9_ClanCapitalClanAttacks || A10_ClanCapitalClanDefenses
     // DB format: Stores summarized clan capital history (monthly, right before CWL signup ends)
     // DB Ordering: season number
@@ -1122,7 +1191,7 @@ function tableInfo(db) {
         ['season', 'teamSeason']
     );
 
-    // Table 18: C05_ThLeagueSeasonStats
+    // Table 19: C05_ThLeagueSeasonStats
     // Primary database: A2_ClanMembers
     // DB format: Stores count of number of players per league in the clan (weekly, right before ranked signup ends)
     // DB Ordering: season number
@@ -1201,7 +1270,7 @@ function tableInfo(db) {
         ['season', 'teamSeason', 'avgThLeague']
     );
 
-    // Table 19: C06_BhLeagueSeasonStats
+    // Table 20: C06_BhLeagueSeasonStats
     // Primary database: A2_ClanMembers
     // DB format: Stores count of number of players per builder base league in the clan (monthly, right before CWL signup ends)
     // DB Ordering: season number
@@ -1279,7 +1348,7 @@ function tableInfo(db) {
         ['season', 'teamSeason', 'avgBhLeague']
     );
 
-    // Table 20: C07_ThCountSeasonStats
+    // Table 21: C07_ThCountSeasonStats
     // Primary database: A2_ClanMembers
     // DB format: Stores count of number of players THs in the clan (monthly, right before CWL signup ends)
     // DB Ordering: season number
@@ -1317,7 +1386,7 @@ function tableInfo(db) {
         ['season', 'teamSeason', 'avgThLevel']
     );
 
-    // Table 21: C08_BhCountSeasonStats
+    // Table 22: C08_BhCountSeasonStats
     // Primary database: A2_ClanMembers
     // DB format: Stores count of number of players BHs in the clan (monthly, right before CWL signup ends)
     // DB Ordering: season number
@@ -1347,7 +1416,7 @@ function tableInfo(db) {
         ['season', 'teamSeason', 'avgBhLevel']
     );
 
-    // Table 22: D01_Achievements
+    // Table 23: D01_Achievements
     // Primary database: A1_ClanInfo
     // DB format: Stores achievements of the clan (updated whenever the relevant achievement is obtained; formatted per achievement)
     // DB Ordering: order of Achievement
@@ -1367,7 +1436,7 @@ function tableInfo(db) {
 }
 
 // Get db name from command line argument
-const dbFileName = "DEVTEST.db";
+const dbFileName = "20CG8UURL.db";
 if (!dbFileName) {
     console.error('Please specify a database file name.');
     process.exit(1);
