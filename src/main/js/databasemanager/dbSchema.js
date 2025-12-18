@@ -437,20 +437,23 @@ function tableInfo(db) {
             { name: 'startTime', type: 'TEXT' },
             { name: 'endTime', type: 'TEXT' },
 
-            // Clan Info
-            { name: 'clanTag', type: 'TEXT' },
-            { name: 'clanName', type: 'TEXT' },
-            { name: 'clanLevel', type: 'INTEGER' },
-            { name: 'clanAttacks', type: 'INTEGER' },
-            { name: 'clanStars', type: 'INTEGER' },
-            { name: 'clanDestructionPercent', type: 'REAL' },
+            // Clan 1 Info
+            { name: 'clan1Tag', type: 'TEXT' },
+            { name: 'clan1Name', type: 'TEXT' },
+            { name: 'clan1BannerUrl', type: 'TEXT' },
+            { name: 'clan1Level', type: 'INTEGER' },
+            { name: 'clan1Attacks', type: 'INTEGER' },
+            { name: 'clan1Stars', type: 'INTEGER' },
+            { name: 'clan1DestructionPercent', type: 'REAL' },
 
-            { name: 'opponentTag', type: 'TEXT' },
-            { name: 'opponentName', type: 'TEXT' },
-            { name: 'opponentLevel', type: 'INTEGER' },
-            { name: 'opponentAttacks', type: 'INTEGER' },
-            { name: 'opponentStars', type: 'INTEGER' },
-            { name: 'opponentDestructionPercent', type: 'REAL' },
+            // Clan 2 Info
+            { name: 'clan2Tag', type: 'TEXT' },
+            { name: 'clan2Name', type: 'TEXT' },
+            { name: 'clan2BannerUrl', type: 'TEXT' },
+            { name: 'clan2Level', type: 'INTEGER' },
+            { name: 'clan2Attacks', type: 'INTEGER' },
+            { name: 'clan2Stars', type: 'INTEGER' },
+            { name: 'clan2DestructionPercent', type: 'REAL' },
 
             { name: 'winningClanTag', type: 'TEXT' }
         ],
@@ -489,7 +492,15 @@ function tableInfo(db) {
             { name: 'stars', type: 'INTEGER' },
             { name: 'destructionPercentage', type: 'INTEGER' },
             { name: 'attackOrder', type: 'INTEGER' },
-            { name: 'duration', type: 'INTEGER' }
+            { name: 'duration', type: 'INTEGER' },
+
+            // Best Defense Details
+            { name: 'opponentAttacks', type: 'INTEGER' },
+            { name: 'BestDefenseAttackerTag', type: 'TEXT' },
+            { name: 'BestDefenseStars', type: 'INTEGER' },
+            { name: 'BestDefensePercentage', type: 'INTEGER' },
+            { name: 'BestDefenseOrder', type: 'INTEGER' },
+            { name: 'BestDefenseDuration', type: 'INTEGER' }
         ],
         ['season', 'warTag', 'clanTag', 'opponentTag', 'attackerTag']
     );

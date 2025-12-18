@@ -40,8 +40,8 @@ public class UtilsErrorInterceptor extends PrintStream {
             // Check if we have a complete line (ends with newline)
             if (text.contains("\n")) {
                 String fullText = lineBuffer.toString().trim();
-                if (!fullText.isEmpty() && !fullText.startsWith("🔴")) {
-                    // Don't log if it's already a Discord error message (starts with emoji)
+                if (!fullText.isEmpty() && !fullText.startsWith("🔴") && !isRateLimitMessage(fullText)) {
+                    // Don't log if it's already a Discord error message or rate limit error
                     logger.logError(fullText);
                 }
                 lineBuffer.setLength(0);
@@ -62,7 +62,7 @@ public class UtilsErrorInterceptor extends PrintStream {
         
         try {
             isIntercepting.set(true);
-            if (x != null && !x.trim().isEmpty() && !x.startsWith("🔴")) {
+            if (x != null && !x.trim().isEmpty() && !x.startsWith("🔴") && !isRateLimitMessage(x)) {
                 logger.logError(x);
             }
         } finally {
@@ -83,13 +83,24 @@ public class UtilsErrorInterceptor extends PrintStream {
             isIntercepting.set(true);
             if (x != null) {
                 String msg = x.toString();
-                if (!msg.startsWith("🔴")) {
+                if (!msg.startsWith("🔴") && !isRateLimitMessage(msg)) {
                     logger.logError(msg);
                 }
             }
         } finally {
             isIntercepting.set(false);
         }
+    }
+    
+    /**
+     * Checks if a message is about Discord rate limiting
+     * @param message The message to check
+     * @return true if the message is about rate limiting
+     */
+    private static boolean isRateLimitMessage(String message) {
+        return message.contains("Status code: 429") || 
+               message.contains("You are being rate limited") ||
+               message.contains("Failed to send message to Discord");
     }
     
     /**
