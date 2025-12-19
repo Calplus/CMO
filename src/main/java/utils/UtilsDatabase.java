@@ -43,47 +43,62 @@ public class UtilsDatabase {
     }
     
     /**
-     * Helper to set nullable Integer in PreparedStatement
-     * @param pstmt The PreparedStatement to set the value on
-     * @param parameterIndex The parameter index (1-based)
-     * @param value The value to set (can be null)
-     * @throws SQLException if a database error occurs
+     * Sets an integer value or NULL in a PreparedStatement
+     * @param pstmt The PreparedStatement to set the value in
+     * @param index The parameter index (1-based)
+     * @param value The integer value to set, or null to set NULL
+     * @throws SQLException if a database access error occurs
      */
-    public static void setNullableInt(PreparedStatement pstmt, int parameterIndex, Integer value) throws SQLException {
+    public static void setIntOrNull(PreparedStatement pstmt, int index, Integer value) throws SQLException {
         if (value == null) {
-            pstmt.setNull(parameterIndex, java.sql.Types.INTEGER);
+            pstmt.setNull(index, java.sql.Types.INTEGER);
         } else {
-            pstmt.setInt(parameterIndex, value);
+            pstmt.setInt(index, value);
         }
     }
-
+    
     /**
-     * Helper to set nullable String in PreparedStatement
-     * @param pstmt The PreparedStatement to set the value on
-     * @param parameterIndex The parameter index (1-based)
-     * @param value The value to set (can be null)
-     * @throws SQLException if a database error occurs
+     * Sets a double value or NULL in a PreparedStatement
+     * @param pstmt The PreparedStatement to set the value in
+     * @param index The parameter index (1-based)
+     * @param value The double value to set, or null to set NULL
+     * @throws SQLException if a database access error occurs
      */
-    public static void setNullableString(PreparedStatement pstmt, int parameterIndex, String value) throws SQLException {
+    public static void setDoubleOrNull(PreparedStatement pstmt, int index, Double value) throws SQLException {
         if (value == null) {
-            pstmt.setNull(parameterIndex, java.sql.Types.VARCHAR);
+            pstmt.setNull(index, java.sql.Types.REAL);
         } else {
-            pstmt.setString(parameterIndex, value);
+            pstmt.setDouble(index, value);
         }
     }
-
+    
     /**
-     * Helper to set nullable Boolean in PreparedStatement
-     * @param pstmt The PreparedStatement to set the value on
-     * @param parameterIndex The parameter index (1-based)
-     * @param value The value to set (can be null)
-     * @throws SQLException if a database error occurs
+     * Sets a string value or NULL in a PreparedStatement
+     * @param pstmt The PreparedStatement to set the value in
+     * @param index The parameter index (1-based)
+     * @param value The string value to set, or null to set NULL
+     * @throws SQLException if a database access error occurs
      */
-    public static void setNullableBoolean(PreparedStatement pstmt, int parameterIndex, Boolean value) throws SQLException {
+    public static void setStringOrNull(PreparedStatement pstmt, int index, String value) throws SQLException {
         if (value == null) {
-            pstmt.setNull(parameterIndex, java.sql.Types.BOOLEAN);
+            pstmt.setNull(index, java.sql.Types.VARCHAR);
         } else {
-            pstmt.setBoolean(parameterIndex, value);
+            pstmt.setString(index, value);
+        }
+    }
+    
+    /**
+     * Sets a boolean value or NULL in a PreparedStatement
+     * @param pstmt The PreparedStatement to set the value in
+     * @param index The parameter index (1-based)
+     * @param value The boolean value to set, or null to set NULL
+     * @throws SQLException if a database access error occurs
+     */
+    public static void setBooleanOrNull(PreparedStatement pstmt, int index, Boolean value) throws SQLException {
+        if (value == null) {
+            pstmt.setNull(index, java.sql.Types.BOOLEAN);
+        } else {
+            pstmt.setBoolean(index, value);
         }
     }
 

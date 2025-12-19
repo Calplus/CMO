@@ -537,11 +537,12 @@ function tableInfo(db) {
             // Defender War Stats
             { name: 'opponentTag', type: 'TEXT' },
             { name: 'opponentName', type: 'TEXT' },
+            { name: 'opponentBannerUrl', type: 'TEXT' },
             { name: 'opponentLevel', type: 'INTEGER' },
             { name: 'opponentStars', type: 'INTEGER' },
             { name: 'opponentDestructionPercent', type: 'REAL' }
         ],
-        ['cwSeason', 'result']
+        ['cwSeason', 'dateLogged', 'result']
     );
 
     // Table 6: A06_ClanWarAttackDetails

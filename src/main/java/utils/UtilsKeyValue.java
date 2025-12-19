@@ -124,7 +124,7 @@ public class UtilsKeyValue {
                 pstmt.setString(1, currentDateTime);
                 pstmt.setString(2, season);
                 pstmt.setString(3, pair.key);
-                UtilsDatabase.setNullableString(pstmt, 4, (String) pair.value);
+                UtilsDatabase.setStringOrNull(pstmt, 4, (String) pair.value);
                 pstmt.addBatch();
             }
 
@@ -170,7 +170,7 @@ public class UtilsKeyValue {
                 pstmt.setString(1, currentDateTime);
                 pstmt.setString(2, season);
                 pstmt.setString(3, pair.key);
-                UtilsDatabase.setNullableInt(pstmt, 4, (Integer) pair.value);
+                UtilsDatabase.setIntOrNull(pstmt, 4, (Integer) pair.value);
                 pstmt.addBatch();
             }
 

@@ -26,7 +26,6 @@ import utils.UtilsConfig;
 import utils.UtilsDatabase;
 import utils.UtilsErrorInterceptor;
 import utils.UtilsJson;
-
 /**
  * Updates the A02_ClanMembers table with member information from the Clash of Clans API.
  * Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/members
@@ -759,217 +758,217 @@ public class A02_ClanMembers {
      */
     private int bindPlayerDataParameters(PreparedStatement pstmt, int idx, PlayerData data) throws SQLException {
         // Basic stats
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.thLevel);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.bhLevel);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.xpLevel);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.trophies);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.bestTrophies);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.legendTrophies);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.bbTrophies);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.bestBbTrophies);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.warStars);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.attackWins);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.defenseWins);
-        UtilsDatabase.setNullableString(pstmt, idx++, data.clanRole);
-        UtilsDatabase.setNullableBoolean(pstmt, idx++, data.warPreference);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.donations);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.donationsReceived);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.clanCapitalContributions);
-        UtilsDatabase.setNullableString(pstmt, idx++, data.legacyLeagueName);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.leagueInt);
-        UtilsDatabase.setNullableString(pstmt, idx++, data.bbLeagueName);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.thLevel);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.bhLevel);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.xpLevel);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.trophies);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.bestTrophies);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.legendTrophies);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.bbTrophies);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.bestBbTrophies);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.warStars);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.attackWins);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.defenseWins);
+        UtilsDatabase.setStringOrNull(pstmt, idx++, data.clanRole);
+        UtilsDatabase.setBooleanOrNull(pstmt, idx++, data.warPreference);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.donations);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.donationsReceived);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.clanCapitalContributions);
+        UtilsDatabase.setStringOrNull(pstmt, idx++, data.legacyLeagueName);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.leagueInt);
+        UtilsDatabase.setStringOrNull(pstmt, idx++, data.bbLeagueName);
         
         // Achievements (53)
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementBiggerCoffers);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementGetThoseGoblins);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementBiggerBetter);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementNiceAndTidy);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementDiscoverNewTroops);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementGoldGrab);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementElixirEscapade);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementSweetVictory);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementEmpireBuilder);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementWallBuster);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementHumiliator);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementUnionBuster);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementConqueror);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementUnbreakable);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementFriendInNeed);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementMortarMauler);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementHeroicHeist);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementLeagueAllStar);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementXBowExterminator);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementFirefighter);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementWarHero);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementClanWarWealth);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementAntiArtillery);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementSharingIsCaring);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementKeepYourAccountSafe);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementMasterEngineering);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementNextGenerationModel);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementUnBuildIt);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementChampionBuilder);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementHighGear);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementHiddenTreasures);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementGamesChampion);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementDragonSlayer);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementWarLeagueLegend);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementWellSeasoned);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementShatteredAndScattered);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementNotSoEasyThisTime);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementBustThis);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementSuperbWork);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementSiegeSharer);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementAggressiveCapitalism);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementMostValuableClanmate);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementCounterspell);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementMonolithMasher);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementUngratefulChild);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementSupercharger);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementMultiArcherTowerTerminator);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementRicochetCannonCrusher);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementFirespitterFinisher);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementMultiGearTowerTrampler);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementCraftingConnoisseur);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementCraftersNightmare);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.achievementLeagueFollower);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementBiggerCoffers);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementGetThoseGoblins);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementBiggerBetter);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementNiceAndTidy);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementDiscoverNewTroops);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementGoldGrab);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementElixirEscapade);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementSweetVictory);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementEmpireBuilder);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementWallBuster);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementHumiliator);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementUnionBuster);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementConqueror);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementUnbreakable);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementFriendInNeed);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementMortarMauler);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementHeroicHeist);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementLeagueAllStar);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementXBowExterminator);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementFirefighter);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementWarHero);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementClanWarWealth);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementAntiArtillery);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementSharingIsCaring);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementKeepYourAccountSafe);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementMasterEngineering);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementNextGenerationModel);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementUnBuildIt);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementChampionBuilder);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementHighGear);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementHiddenTreasures);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementGamesChampion);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementDragonSlayer);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementWarLeagueLegend);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementWellSeasoned);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementShatteredAndScattered);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementNotSoEasyThisTime);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementBustThis);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementSuperbWork);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementSiegeSharer);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementAggressiveCapitalism);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementMostValuableClanmate);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementCounterspell);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementMonolithMasher);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementUngratefulChild);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementSupercharger);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementMultiArcherTowerTerminator);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementRicochetCannonCrusher);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementFirespitterFinisher);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementMultiGearTowerTrampler);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementCraftingConnoisseur);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementCraftersNightmare);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.achievementLeagueFollower);
         
         // Elixir Troops (18)
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirBarbarian);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirArcher);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirGiant);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirGoblin);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirWallBreaker);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirBalloon);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirWizard);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirHealer);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirDragon);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirPEKKA);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirBabyDragon);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirMiner);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirElectroDragon);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirYeti);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirDragonRider);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirElectroTitan);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirRootRider);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopElixirThrower);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirBarbarian);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirArcher);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirGiant);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirGoblin);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirWallBreaker);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirBalloon);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirWizard);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirHealer);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirDragon);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirPEKKA);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirBabyDragon);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirMiner);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirElectroDragon);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirYeti);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirDragonRider);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirElectroTitan);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirRootRider);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopElixirThrower);
         
         // Dark Elixir Troops (12)
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirMinion);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirHogRider);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirValkyrie);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirGolem);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirWitch);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirLavaHound);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirBowler);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirIceGolem);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirHeadhunter);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirApprenticeWarden);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirDruid);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopDarkElixirFurnace);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirMinion);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirHogRider);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirValkyrie);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirGolem);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirWitch);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirLavaHound);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirBowler);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirIceGolem);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirHeadhunter);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirApprenticeWarden);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirDruid);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopDarkElixirFurnace);
         
         // Spells (9)
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSpellLightning);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSpellHealing);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSpellRage);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSpellJump);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSpellFreeze);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSpellClone);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSpellInvisibility);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSpellRecall);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSpellRevive);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSpellLightning);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSpellHealing);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSpellRage);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSpellJump);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSpellFreeze);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSpellClone);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSpellInvisibility);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSpellRecall);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSpellRevive);
         
         // Dark Spells (7)
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlDarkSpellPoison);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlDarkSpellEarthquake);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlDarkSpellHaste);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlDarkSpellSkeleton);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlDarkSpellBat);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlDarkSpellOvergrowth);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlDarkSpellIceBlock);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlDarkSpellPoison);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlDarkSpellEarthquake);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlDarkSpellHaste);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlDarkSpellSkeleton);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlDarkSpellBat);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlDarkSpellOvergrowth);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlDarkSpellIceBlock);
         
         // Builder Base Troops (12)
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBaseRagedBarbarian);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBaseSneakyArcher);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBaseBoxerGiant);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBaseBetaMinion);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBaseBomber);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBaseBabyDragon);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBaseCannonCart);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBaseNightWitch);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBaseDropShip);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBasePowerPekka);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBaseHogGlider);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlTroopBuilderBaseElectrofireWizard);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBaseRagedBarbarian);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBaseSneakyArcher);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBaseBoxerGiant);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBaseBetaMinion);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBaseBomber);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBaseBabyDragon);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBaseCannonCart);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBaseNightWitch);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBaseDropShip);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBasePowerPekka);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBaseHogGlider);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlTroopBuilderBaseElectrofireWizard);
         
         // Siege Machines (8)
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSiegeWallWrecker);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSiegeBattleBlimp);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSiegeStoneSlammer);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSiegeSiegeBarracks);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSiegeLogLauncher);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSiegeFlameFlinger);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSiegeBattleDrill);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlSiegeTroopLauncher);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSiegeWallWrecker);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSiegeBattleBlimp);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSiegeStoneSlammer);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSiegeSiegeBarracks);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSiegeLogLauncher);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSiegeFlameFlinger);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSiegeBattleDrill);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlSiegeTroopLauncher);
         
         // Pets (11)
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlPetLASSI);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlPetMightyYak);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlPetElectroOwl);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlPetUnicorn);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlPetPhoenix);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlPetPoisonLizard);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlPetDiggy);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlPetFrosty);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlPetSpiritFox);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlPetAngryJelly);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlPetSneezy);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlPetLASSI);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlPetMightyYak);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlPetElectroOwl);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlPetUnicorn);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlPetPhoenix);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlPetPoisonLizard);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlPetDiggy);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlPetFrosty);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlPetSpiritFox);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlPetAngryJelly);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlPetSneezy);
         
         // Heroes (7)
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroBarbarianKing);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroArcherQueen);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroMinionPrince);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroGrandWarden);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroRoyalChampion);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroBattleMachine);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroBattleCopter);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroBarbarianKing);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroArcherQueen);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroMinionPrince);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroGrandWarden);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroRoyalChampion);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroBattleMachine);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroBattleCopter);
         
         // Hero Equipment (35)
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentBarbarianPuppet);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentRageVial);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentEarthquakeBoots);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentVampstache);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentGiantGauntlet);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentSpikyBall);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentSnakeBracelet);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentStickHorse);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentArcherPuppet);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentInvisibilityVial);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentGiantArrow);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentHealerPuppet);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentFrozenArrow);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentMagicMirror);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentActionFigure);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentHenchmenPuppet);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentDarkOrb);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentMetalPants);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentNobleIron);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentDarkCrown);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentMeteorStaff);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentEternalTome);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentLifeGem);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentRageGem);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentHealingTome);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentFireball);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentLavaloonPuppet);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentHeroicTorch);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentRoyalGem);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentSeekingShield);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentHogRiderPuppet);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentHasteVial);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentRocketSpear);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentElectroBoots);
-        UtilsDatabase.setNullableInt(pstmt, idx++, data.lvlHeroEquipmentFrostFlake);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentBarbarianPuppet);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentRageVial);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentEarthquakeBoots);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentVampstache);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentGiantGauntlet);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentSpikyBall);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentSnakeBracelet);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentStickHorse);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentArcherPuppet);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentInvisibilityVial);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentGiantArrow);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentHealerPuppet);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentFrozenArrow);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentMagicMirror);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentActionFigure);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentHenchmenPuppet);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentDarkOrb);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentMetalPants);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentNobleIron);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentDarkCrown);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentMeteorStaff);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentEternalTome);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentLifeGem);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentRageGem);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentHealingTome);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentFireball);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentLavaloonPuppet);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentHeroicTorch);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentRoyalGem);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentSeekingShield);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentHogRiderPuppet);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentHasteVial);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentRocketSpear);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentElectroBoots);
+        UtilsDatabase.setIntOrNull(pstmt, idx++, data.lvlHeroEquipmentFrostFlake);
         
         return idx;
     }
@@ -1036,7 +1035,7 @@ public class A02_ClanMembers {
             
             int idx = 1;
             pstmt.setString(idx++, playerTag);
-            UtilsDatabase.setNullableString(pstmt, idx++, data.name);
+            UtilsDatabase.setStringOrNull(pstmt, idx++, data.name);
             pstmt.setString(idx++, currentDateTime); // lastUpdated
             pstmt.setString(idx++, currentDateTime); // dateJoin
             pstmt.setNull(idx++, java.sql.Types.VARCHAR); // dateLeft (NULL for new players)
@@ -1113,7 +1112,7 @@ public class A02_ClanMembers {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             int idx = 1;
-            UtilsDatabase.setNullableString(pstmt, idx++, data.name);
+            UtilsDatabase.setStringOrNull(pstmt, idx++, data.name);
             pstmt.setString(idx++, currentDateTime); // lastUpdated
             pstmt.setString(idx++, currentDateTime); // dateJoin reset
             pstmt.setString(idx++, currentDateTime); // lastActive
@@ -1191,7 +1190,7 @@ public class A02_ClanMembers {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             int idx = 1;
-            UtilsDatabase.setNullableString(pstmt, idx++, data.name);
+            UtilsDatabase.setStringOrNull(pstmt, idx++, data.name);
             pstmt.setString(idx++, currentDateTime); // lastUpdated always updates
             
             if (dataChanged) {

@@ -19,7 +19,6 @@ import com.google.gson.JsonObject;
 import discordbot.logs.DiscordLog;
 import utils.UtilsDatabase;
 import utils.UtilsJson;
-
 /**
  * Updates the A04_CWLAttackDetails table with attack information from CWL wars.
  * This class is called by A03_CWLWarDetails after fetching war data.
@@ -144,22 +143,22 @@ public class A04_CWLAttackDetails {
                 pstmt.setString(5, attack.opponentTag);
                 pstmt.setString(6, attack.attackerTag);
                 pstmt.setString(7, attack.attackerName);
-                setIntOrNull(pstmt, 8, attack.attackerThLevel);
-                setIntOrNull(pstmt, 9, attack.attackerMapPosition);
+                UtilsDatabase.setIntOrNull(pstmt, 8, attack.attackerThLevel);
+                UtilsDatabase.setIntOrNull(pstmt, 9, attack.attackerMapPosition);
                 pstmt.setString(10, attack.defenderTag);
                 pstmt.setString(11, attack.defenderName);
-                setIntOrNull(pstmt, 12, attack.defenderThLevel);
-                setIntOrNull(pstmt, 13, attack.defenderMapPosition);
-                setIntOrNull(pstmt, 14, attack.stars);
-                setIntOrNull(pstmt, 15, attack.destructionPercentage);
-                setIntOrNull(pstmt, 16, attack.attackOrder);
-                setIntOrNull(pstmt, 17, attack.duration);
-                setIntOrNull(pstmt, 18, attack.opponentAttacks);
+                UtilsDatabase.setIntOrNull(pstmt, 12, attack.defenderThLevel);
+                UtilsDatabase.setIntOrNull(pstmt, 13, attack.defenderMapPosition);
+                UtilsDatabase.setIntOrNull(pstmt, 14, attack.stars);
+                UtilsDatabase.setIntOrNull(pstmt, 15, attack.destructionPercentage);
+                UtilsDatabase.setIntOrNull(pstmt, 16, attack.attackOrder);
+                UtilsDatabase.setIntOrNull(pstmt, 17, attack.duration);
+                UtilsDatabase.setIntOrNull(pstmt, 18, attack.opponentAttacks);
                 pstmt.setString(19, attack.bestDefenseAttackerTag);
-                setIntOrNull(pstmt, 20, attack.bestDefenseStars);
-                setIntOrNull(pstmt, 21, attack.bestDefensePercentage);
-                setIntOrNull(pstmt, 22, attack.bestDefenseOrder);
-                setIntOrNull(pstmt, 23, attack.bestDefenseDuration);
+                UtilsDatabase.setIntOrNull(pstmt, 20, attack.bestDefenseStars);
+                UtilsDatabase.setIntOrNull(pstmt, 21, attack.bestDefensePercentage);
+                UtilsDatabase.setIntOrNull(pstmt, 22, attack.bestDefenseOrder);
+                UtilsDatabase.setIntOrNull(pstmt, 23, attack.bestDefenseDuration);
                 
                 pstmt.executeUpdate();
             }
@@ -178,38 +177,27 @@ public class A04_CWLAttackDetails {
                 
                 pstmt.setString(1, currentDateTime);
                 pstmt.setString(2, attack.attackerName);
-                setIntOrNull(pstmt, 3, attack.attackerThLevel);
-                setIntOrNull(pstmt, 4, attack.attackerMapPosition);
+                UtilsDatabase.setIntOrNull(pstmt, 3, attack.attackerThLevel);
+                UtilsDatabase.setIntOrNull(pstmt, 4, attack.attackerMapPosition);
                 pstmt.setString(5, attack.defenderName);
-                setIntOrNull(pstmt, 6, attack.defenderThLevel);
-                setIntOrNull(pstmt, 7, attack.defenderMapPosition);
-                setIntOrNull(pstmt, 8, attack.stars);
-                setIntOrNull(pstmt, 9, attack.destructionPercentage);
-                setIntOrNull(pstmt, 10, attack.duration);
-                setIntOrNull(pstmt, 11, attack.opponentAttacks);
+                UtilsDatabase.setIntOrNull(pstmt, 6, attack.defenderThLevel);
+                UtilsDatabase.setIntOrNull(pstmt, 7, attack.defenderMapPosition);
+                UtilsDatabase.setIntOrNull(pstmt, 8, attack.stars);
+                UtilsDatabase.setIntOrNull(pstmt, 9, attack.destructionPercentage);
+                UtilsDatabase.setIntOrNull(pstmt, 10, attack.duration);
+                UtilsDatabase.setIntOrNull(pstmt, 11, attack.opponentAttacks);
                 pstmt.setString(12, attack.bestDefenseAttackerTag);
-                setIntOrNull(pstmt, 13, attack.bestDefenseStars);
-                setIntOrNull(pstmt, 14, attack.bestDefensePercentage);
-                setIntOrNull(pstmt, 15, attack.bestDefenseOrder);
-                setIntOrNull(pstmt, 16, attack.bestDefenseDuration);
+                UtilsDatabase.setIntOrNull(pstmt, 13, attack.bestDefenseStars);
+                UtilsDatabase.setIntOrNull(pstmt, 14, attack.bestDefensePercentage);
+                UtilsDatabase.setIntOrNull(pstmt, 15, attack.bestDefenseOrder);
+                UtilsDatabase.setIntOrNull(pstmt, 16, attack.bestDefenseDuration);
                 pstmt.setString(17, attack.warTag);
                 pstmt.setString(18, attack.attackerTag);
                 pstmt.setString(19, attack.defenderTag);
-                setIntOrNull(pstmt, 20, attack.attackOrder);
+                UtilsDatabase.setIntOrNull(pstmt, 20, attack.attackOrder);
                 
                 pstmt.executeUpdate();
             }
-        }
-    }
-    
-    /**
-     * Helper method to set integer or null in PreparedStatement
-     */
-    private void setIntOrNull(PreparedStatement pstmt, int index, Integer value) throws SQLException {
-        if (value == null) {
-            pstmt.setNull(index, java.sql.Types.INTEGER);
-        } else {
-            pstmt.setInt(index, value);
         }
     }
     
