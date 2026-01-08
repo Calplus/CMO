@@ -15,7 +15,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import com.calplus.cmo.discordbot.logs.DiscordLog;
@@ -26,7 +25,6 @@ import com.calplus.cmo.utils.UtilsJson;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 /**
@@ -128,14 +126,6 @@ public class A05_ClanWarLog {
         }
         
         return false;
-    }
-    
-    /**
-     * Checks if a war is a CWL (Clan War League) war
-     * CWL wars have no opponent level information (null or 0)
-     */
-    private boolean isCwlWar(WarData war) {
-        return war.opponentLevel == null || war.opponentLevel == 0;
     }
     
     /**

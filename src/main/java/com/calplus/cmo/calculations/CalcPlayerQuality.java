@@ -27,7 +27,7 @@ public class CalcPlayerQuality {
                 int cumulativeSum = 0;
                 
                 for (int j = 0; j < dataArray.size(); j++) {
-                    if (j < LEAGUE_FLOOR[i]-1) {
+                    if (j < LEAGUE_FLOOR[i]-1 || (i >= 12 && j < LEAGUE_FLOOR[i])) {
                         matrix[i][j+1] = 0;
                     } else {
                         cumulativeSum += dataArray.get(j).getAsInt();
@@ -50,14 +50,15 @@ public class CalcPlayerQuality {
         
         for (int i = 7; i < matrix.length; i++) {
             int maxValue = culmulativeMatrix[i][culmulativeMatrix[i].length - 1];
+            int base = culmulativeMatrix[i][LEAGUE_FLOOR[i]];
             int pct25 = maxValue / 4;
-            int pct99 = ((maxValue / 100) * 99) - pct25;
+            int pct99 = ((maxValue / 100) * 99) - base;
 
             for (int j = 1; j < matrix[i].length; j++) {
-                if (culmulativeMatrix[i][j-1] <= pct25 || j <= LEAGUE_FLOOR[i] || (i >= 12 && j <= LEAGUE_FLOOR[i]+1)) {
+                if (j <= LEAGUE_FLOOR[i] || (i >= 12 && j <= LEAGUE_FLOOR[i]+1)) {
                     matrix[i][j] = 0;
                 } else {
-                    double score = (((double) culmulativeMatrix[i][j-1] - pct25) / pct99) * 100;
+                    double score = (((double) culmulativeMatrix[i][j-1] - base) / pct99) * 100;
                     if (score >= 100) score = 100;
                     matrix[i][j] = score;
                 }
