@@ -1,9 +1,9 @@
-package utils;
+package com.calplus.cmo.utils;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
 
-import discordbot.logs.DiscordLog;
+import com.calplus.cmo.discordbot.logs.DiscordLog;
 
 /**
  * Custom PrintStream that intercepts System.err and logs to Discord

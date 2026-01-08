@@ -1,4 +1,4 @@
-package scheduler;
+package com.calplus.cmo.scheduler;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -6,10 +6,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import com.calplus.cmo.databaseupdater.A01_ClanInfo;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import databaseupdater.A01_ClanInfo;
 
 /**
  * A scheduler that manages running Java tasks at specified intervals.

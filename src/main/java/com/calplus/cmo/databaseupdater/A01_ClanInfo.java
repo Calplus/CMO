@@ -1,4 +1,4 @@
-package databaseupdater;
+package com.calplus.cmo.databaseupdater;
 
 import java.io.IOException;
 import java.net.URI;
@@ -9,17 +9,16 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.calplus.cmo.discordbot.logs.DiscordLog;
+import com.calplus.cmo.utils.UtilsConfig;
+import com.calplus.cmo.utils.UtilsDatabase;
+import com.calplus.cmo.utils.UtilsErrorInterceptor;
+import com.calplus.cmo.utils.UtilsJson;
+import com.calplus.cmo.utils.UtilsKeyValue;
+import com.calplus.cmo.utils.UtilsLastValueFetcher;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
-import discordbot.logs.DiscordLog;
-import utils.UtilsConfig;
-import utils.UtilsDatabase;
-import utils.UtilsErrorInterceptor;
-import utils.UtilsJson;
-import utils.UtilsKeyValue;
-import utils.UtilsLastValueFetcher;
 
 /**
  * Updates the A01a_ClanInfo_TEXT and A01b_ClanInfo_INT tables with daily clan information from the Clash of Clans API.

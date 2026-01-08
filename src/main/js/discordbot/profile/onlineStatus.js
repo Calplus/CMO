@@ -1,10 +1,56 @@
 const { Client, GatewayIntentBits } = require('discord.js');
-const dotenv = require('dotenv');
+const fs = require('fs');
 const path = require('path');
 const DiscordLog = require('../logs/discordLog');
 
-// Load environment variables from .env file in project root
-dotenv.config({ path: path.resolve(__dirname, '../../../../../.env') });
+/**
+ * Loads configuration from .env file
+ * @returns {Object} Configuration object with properties
+ */
+function loadConfig() {
+    // JavaScript runs externally, so load from .env file
+    let configPath = path.resolve(__dirname, '../../../../../.env');
+    
+    // Fallback to .env.example if .env doesn't exist
+    if (!fs.existsSync(configPath)) {
+        configPath = path.resolve(__dirname, '../../../../../.env.example');
+        
+        if (!fs.existsSync(configPath)) {
+            console.error('ERROR: .env file not found.');
+            console.error('Please copy .env.example to .env and fill in your values.');
+            return null;
+        }
+    }
+
+    try {
+        const configContent = fs.readFileSync(configPath, 'utf8');
+        const configLines = configContent.split('\n');
+        
+        const config = {};
+        configLines.forEach(line => {
+            // Skip comments and empty lines
+            if (line.trim().startsWith('#') || !line.trim()) {
+                return;
+            }
+            
+            const [key, ...valueParts] = line.split('=');
+            if (key && valueParts.length > 0) {
+                config[key.trim()] = valueParts.join('=').trim();
+            }
+        });
+
+        return config;
+    } catch (error) {
+        console.error(`ERROR: Failed to read .env file: ${error.message}`);
+        return null;
+    }
+}
+
+// Load configuration
+const config = loadConfig();
+if (!config) {
+    process.exit(1);
+}
 
 // Create Discord logger instance
 const discordLogger = new DiscordLog();
@@ -54,7 +100,7 @@ client.on('reconnecting', () => {
 });
 
 // Login to Discord
-const token = process.env.DISCORD_BOT_TOKEN;
+const token = config.DISCORD_BOT_TOKEN;
 
 if (!token) {
     discordLogger.logError('DISCORD_BOT_TOKEN not found in .env file');

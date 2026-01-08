@@ -1,4 +1,4 @@
-package utils;
+package com.calplus.cmo.utils;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

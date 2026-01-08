@@ -1,4 +1,4 @@
-package databaseupdater;
+package com.calplus.cmo.databaseupdater;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -19,18 +19,17 @@ import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
 
+import com.calplus.cmo.discordbot.logs.DiscordLog;
+import com.calplus.cmo.utils.UtilsConfig;
+import com.calplus.cmo.utils.UtilsDatabase;
+import com.calplus.cmo.utils.UtilsErrorInterceptor;
+import com.calplus.cmo.utils.UtilsJson;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
-import discordbot.logs.DiscordLog;
-import utils.UtilsConfig;
-import utils.UtilsDatabase;
-import utils.UtilsErrorInterceptor;
-import utils.UtilsJson;
 
 /**
  * Updates the A03_CWLWarDetails table with CWL war information from the Clash of Clans API.
@@ -191,7 +190,7 @@ public class A03_CWLWarDetails {
             return;
         }
         
-        String configPath = "src/config/clans/" + clanTag + ".json";
+        String configPath = "config/clans/" + clanTag + ".json";
         File configFile = new File(configPath);
         
         if (!configFile.exists()) {

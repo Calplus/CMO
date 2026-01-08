@@ -1,4 +1,4 @@
-package utils;
+package com.calplus.cmo.utils;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -7,9 +7,8 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 
+import com.calplus.cmo.discordbot.logs.DiscordLog;
 import com.google.gson.JsonObject;
-
-import discordbot.logs.DiscordLog;
 
 /**
  * Utility class for key-value pair database operations

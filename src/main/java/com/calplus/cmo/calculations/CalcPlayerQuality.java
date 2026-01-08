@@ -1,4 +1,4 @@
-package calculations;
+package com.calplus.cmo.calculations;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -54,7 +54,7 @@ public class CalcPlayerQuality {
             int pct99 = ((maxValue / 100) * 99) - pct25;
 
             for (int j = 1; j < matrix[i].length; j++) {
-                if (culmulativeMatrix[i][j-1] <= pct25 ||j <= LEAGUE_FLOOR[i]) {
+                if (culmulativeMatrix[i][j-1] <= pct25 || j <= LEAGUE_FLOOR[i] || (i >= 12 && j <= LEAGUE_FLOOR[i]+1)) {
                     matrix[i][j] = 0;
                 } else {
                     double score = (((double) culmulativeMatrix[i][j-1] - pct25) / pct99) * 100;

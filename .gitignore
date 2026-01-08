@@ -53,13 +53,14 @@ dkms.conf
 
 # Environment files
 .env
+application.properties
 
 # Installed dependencies
 /node_modules/
 
 # Runtime Files
 /database/
-/src/config/clans/
+/config/
 /src/main/java/temp/
 /target/
 /samplejsonfiles/

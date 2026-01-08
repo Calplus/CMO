@@ -1,4 +1,4 @@
-package databaseupdater;
+package com.calplus.cmo.databaseupdater;
 
 import java.io.IOException;
 import java.net.URI;
@@ -16,16 +16,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import com.calplus.cmo.discordbot.logs.DiscordLog;
+import com.calplus.cmo.utils.UtilsConfig;
+import com.calplus.cmo.utils.UtilsDatabase;
+import com.calplus.cmo.utils.UtilsErrorInterceptor;
+import com.calplus.cmo.utils.UtilsJson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
-import discordbot.logs.DiscordLog;
-import utils.UtilsConfig;
-import utils.UtilsDatabase;
-import utils.UtilsErrorInterceptor;
-import utils.UtilsJson;
 /**
  * Updates the A02_ClanMembers table with member information from the Clash of Clans API.
  * Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/members

@@ -1,17 +1,12 @@
-package discordbot.logs;
+package com.calplus.cmo.discordbot.logs;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -23,6 +18,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Reacts to Discord rate limits (429) with retry_after delays.
  */
 public class DiscordLog {
+    private static final int DISCORD_CHARACTER_LIMIT = 2000;
+    private static final long BATCH_TIMEOUT_MS = 5000; // 5 seconds
+    
     private String botToken;
     private String channelId;
     private String adminUserId;
@@ -31,6 +29,15 @@ public class DiscordLog {
     private final AtomicBoolean isProcessing;
     private final HttpClient httpClient;
     private boolean discordEnabled;
+    
+    // Batch message handling
+    private final StringBuilder batchBuffer;
+    private long batchStartTime;
+    private final Object batchLock;
+    
+    // INFO message batching - accumulate INFO logs until a terminal log type (SUCCESS/ERROR/WARNING)
+    private final StringBuilder infoBatchBuffer;
+    private final Object infoBatchLock;
 
     private static class QueuedMessage {
         String message;
@@ -47,6 +54,11 @@ public class DiscordLog {
         this.isProcessing = new AtomicBoolean(false);
         this.httpClient = HttpClient.newHttpClient();
         this.discordEnabled = loadConfig();
+        this.batchBuffer = new StringBuilder();
+        this.batchStartTime = 0;
+        this.batchLock = new Object();
+        this.infoBatchBuffer = new StringBuilder();
+        this.infoBatchLock = new Object();
         
         // Add shutdown hook to ensure all messages are sent before exit
         if (discordEnabled) {
@@ -57,48 +69,33 @@ public class DiscordLog {
     }
 
     /**
-     * Loads the Discord bot token and channel ID from the .env file
+     * Loads the Discord bot token and channel ID from application properties
      * @return true if Discord logging is enabled, false otherwise
      */
     private boolean loadConfig() {
-        Path envPath = Paths.get(System.getProperty("user.dir"), ".env");
-
-        if (!Files.exists(envPath)) {
-            System.err.println("WARNING: .env file not found. Discord logging disabled.");
-            return false;
-        }
-
         try {
-            Map<String, String> config = new HashMap<>();
-            Files.lines(envPath).forEach(line -> {
-                String[] parts = line.split("=", 2);
-                if (parts.length == 2) {
-                    config.put(parts[0].trim(), parts[1].trim());
-                }
-            });
-
-            this.botToken = config.get("DISCORD_BOT_TOKEN");
-            this.channelId = config.get("DISCORD_LOG_CHANNELID");
-            this.adminUserId = config.get("DISCORD_ADMIN_USERID");
+            this.botToken = com.calplus.cmo.utils.PropertyResolver.getProperty("discord.bot.token");
+            this.channelId = com.calplus.cmo.utils.PropertyResolver.getProperty("discord.log.channelId");
+            this.adminUserId = com.calplus.cmo.utils.PropertyResolver.getProperty("discord.admin.userId");
 
             if (this.botToken == null || this.botToken.isEmpty()) {
-                System.err.println("WARNING: DISCORD_BOT_TOKEN not found in .env file. Discord logging disabled.");
+                System.err.println("WARNING: discord.bot.token not found in application.properties. Discord logging disabled.");
                 return false;
             }
             if (this.channelId == null || this.channelId.isEmpty()) {
-                System.err.println("WARNING: DISCORD_LOG_CHANNELID not found in .env file. Discord logging disabled.");
+                System.err.println("WARNING: discord.log.channelId not found in application.properties. Discord logging disabled.");
                 return false;
             }
             
             if (this.adminUserId == null || this.adminUserId.isEmpty()) {
-                System.err.println("INFO: DISCORD_ADMIN_USERID not configured. Admin pings will be skipped.");
+                System.err.println("INFO: discord.admin.userId not configured. Admin pings will be skipped.");
             }
 
             this.discordApiUrl = "https://discord.com/api/v10/channels/" + this.channelId + "/messages";
             return true;
 
-        } catch (IOException e) {
-            System.err.println("WARNING: Failed to read .env file. Discord logging disabled. Error: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("WARNING: Failed to load application.properties. Discord logging disabled. Error: " + e.getMessage());
             return false;
         }
     }
@@ -334,6 +331,10 @@ public class DiscordLog {
         }
         
         System.err.println(formattedMessage);
+        
+        // Flush any accumulated INFO messages before sending error
+        flushInfoBatch();
+        
         return queueMessage(formattedMessage);
     }
 
@@ -346,7 +347,11 @@ public class DiscordLog {
         String filename = getCallerFilename();
         String formattedMessage = formatMessage("🟢", "SUCCESS", message, filename);
         System.out.println(formattedMessage);
-        return queueMessage(formattedMessage);
+        
+        // Combine accumulated INFO messages with success message
+        String combinedMessage = combineInfoBatchWithMessage(formattedMessage);
+        
+        return queueMessage(combinedMessage);
     }
 
     /**
@@ -358,19 +363,179 @@ public class DiscordLog {
         String filename = getCallerFilename();
         String formattedMessage = formatMessage("🟡", "WARNING", message, filename);
         System.out.println(formattedMessage);
-        return queueMessage(formattedMessage);
+        
+        // Combine accumulated INFO messages with warning message
+        String combinedMessage = combineInfoBatchWithMessage(formattedMessage);
+        
+        return queueMessage(combinedMessage);
     }
 
     /**
-     * Sends an info log message to the Discord channel
-     * @param message The info message to send
-     * @return CompletableFuture that resolves to true if successful, false otherwise
+     * Adds an info log message to the INFO batch buffer
+     * INFO messages are accumulated and sent together with the next SUCCESS/ERROR/WARNING message
+     * @param message The info message to add
+     * @return CompletableFuture that resolves to true (immediately)
      */
     public CompletableFuture<Boolean> logInfo(String message) {
         String filename = getCallerFilename();
         String formattedMessage = formatMessage("🔵", "INFO", message, filename);
         System.out.println(formattedMessage);
-        return queueMessage(formattedMessage);
+        
+        synchronized (infoBatchLock) {
+            if (infoBatchBuffer.length() > 0) {
+                infoBatchBuffer.append("\n");
+            }
+            infoBatchBuffer.append(formattedMessage);
+        }
+        
+        return CompletableFuture.completedFuture(true);
+    }
+
+    /**
+     * Flushes any accumulated INFO messages without sending them
+     * (Used internally when error occurs to clear the buffer)
+     */
+    private void flushInfoBatch() {
+        synchronized (infoBatchLock) {
+            infoBatchBuffer.setLength(0);
+        }
+    }
+    
+    /**
+     * Combines accumulated INFO messages with a terminal message (SUCCESS/ERROR/WARNING)
+     * and clears the INFO buffer
+     * @param terminalMessage The terminal message to append
+     * @return Combined message with all INFO logs followed by the terminal message
+     */
+    private String combineInfoBatchWithMessage(String terminalMessage) {
+        synchronized (infoBatchLock) {
+            if (infoBatchBuffer.length() == 0) {
+                return terminalMessage;
+            }
+            String combined = infoBatchBuffer.toString() + "\n" + terminalMessage;
+            infoBatchBuffer.setLength(0);
+            return combined;
+        }
+    }
+    
+    /**
+     * Adds a log message to the batch buffer
+     * @param message The log message to add to batch
+     */
+    public void batchLog(String message) {
+        String filename = getCallerFilename();
+        String formattedMessage = formatMessage("📝", "LOG", message, filename);
+        System.out.println(formattedMessage);
+        addToBatch(formattedMessage);
+    }
+
+    /**
+     * Adds an info log message to the batch buffer
+     * @param message The info message to add to batch
+     */
+    public void batchInfo(String message) {
+        String filename = getCallerFilename();
+        String formattedMessage = formatMessage("🔵", "INFO", message, filename);
+        System.out.println(formattedMessage);
+        addToBatch(formattedMessage);
+    }
+
+    /**
+     * Adds a success log message to the batch buffer
+     * @param message The success message to add to batch
+     */
+    public void batchSuccess(String message) {
+        String filename = getCallerFilename();
+        String formattedMessage = formatMessage("🟢", "SUCCESS", message, filename);
+        System.out.println(formattedMessage);
+        addToBatch(formattedMessage);
+    }
+
+    /**
+     * Adds a warning log message to the batch buffer
+     * @param message The warning message to add to batch
+     */
+    public void batchWarning(String message) {
+        String filename = getCallerFilename();
+        String formattedMessage = formatMessage("🟡", "WARNING", message, filename);
+        System.out.println(formattedMessage);
+        addToBatch(formattedMessage);
+    }
+
+    /**
+     * Adds a message to the batch buffer with timeout check
+     * @param formattedMessage The formatted message to add
+     */
+    private void addToBatch(String formattedMessage) {
+        synchronized (batchLock) {
+            boolean isFirstMessage = batchBuffer.length() == 0;
+            
+            if (isFirstMessage) {
+                batchStartTime = System.currentTimeMillis();
+            } else {
+                // Check if batch timeout exceeded
+                long elapsed = System.currentTimeMillis() - batchStartTime;
+                if (elapsed >= BATCH_TIMEOUT_MS) {
+                    // Flush existing batch first
+                    flushBatchInternal();
+                    // Start new batch
+                    batchStartTime = System.currentTimeMillis();
+                } else {
+                    // Add separator between messages
+                    batchBuffer.append("\n");
+                }
+            }
+            
+            batchBuffer.append(formattedMessage);
+        }
+    }
+
+    /**
+     * Sends all batched messages immediately
+     * @return CompletableFuture that resolves to true if successful, false otherwise
+     */
+    public CompletableFuture<Boolean> flushBatch() {
+        synchronized (batchLock) {
+            return flushBatchInternal();
+        }
+    }
+
+    /**
+     * Internal method to flush batch (must be called within synchronized block)
+     */
+    private CompletableFuture<Boolean> flushBatchInternal() {
+        if (batchBuffer.length() == 0) {
+            return CompletableFuture.completedFuture(true);
+        }
+        
+        String batchContent = batchBuffer.toString();
+        batchBuffer.setLength(0);
+        batchStartTime = 0;
+        
+        // Split message if it exceeds Discord's character limit
+        if (batchContent.length() <= DISCORD_CHARACTER_LIMIT) {
+            return queueMessage(batchContent);
+        } else {
+            // Split into chunks
+            CompletableFuture<Boolean> result = CompletableFuture.completedFuture(true);
+            int start = 0;
+            while (start < batchContent.length()) {
+                int end = Math.min(start + DISCORD_CHARACTER_LIMIT, batchContent.length());
+                
+                // Try to split at newline if possible
+                if (end < batchContent.length()) {
+                    int lastNewline = batchContent.lastIndexOf("\n", end);
+                    if (lastNewline > start) {
+                        end = lastNewline;
+                    }
+                }
+                
+                String chunk = batchContent.substring(start, end);
+                result = result.thenCompose(success -> queueMessage(chunk));
+                start = end + (end < batchContent.length() && batchContent.charAt(end) == '\n' ? 1 : 0);
+            }
+            return result;
+        }
     }
 
     /**

@@ -1,4 +1,4 @@
-package databaseupdater;
+package com.calplus.cmo.databaseupdater;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -18,18 +18,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.calplus.cmo.discordbot.logs.DiscordLog;
+import com.calplus.cmo.utils.UtilsConfig;
+import com.calplus.cmo.utils.UtilsDatabase;
+import com.calplus.cmo.utils.UtilsErrorInterceptor;
+import com.calplus.cmo.utils.UtilsJson;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
-import discordbot.logs.DiscordLog;
-import utils.UtilsConfig;
-import utils.UtilsDatabase;
-import utils.UtilsErrorInterceptor;
-import utils.UtilsJson;
 /**
  * Updates the A05_ClanWarLog table with clan war log information from the Clash of Clans API.
  * Primary endpoint: https://api.clashofclans.com/v1/clans/%23{clanTag}/warlog
@@ -255,7 +254,7 @@ public class A05_ClanWarLog {
         
         if (lastCwSeason == null) {
             // No previous wars, check config file
-            String configPath = "src/config/clans/" + clanTag + ".json";
+            String configPath = "config/clans/" + clanTag + ".json";
             File configFile = new File(configPath);
             
             if (!configFile.exists()) {
@@ -316,7 +315,7 @@ public class A05_ClanWarLog {
      * Updates the cwSeasonId in the clan config JSON file
      */
     private void updateCwSeasonIdInConfig(int nextCwSeasonId) throws IOException {
-        String configPath = "src/config/clans/" + clanTag + ".json";
+        String configPath = "config/clans/" + clanTag + ".json";
         File configFile = new File(configPath);
         
         if (!configFile.exists()) {

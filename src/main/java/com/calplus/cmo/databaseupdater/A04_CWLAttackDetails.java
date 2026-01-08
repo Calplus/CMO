@@ -1,4 +1,4 @@
-package databaseupdater;
+package com.calplus.cmo.databaseupdater;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -12,13 +12,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import com.calplus.cmo.discordbot.logs.DiscordLog;
+import com.calplus.cmo.utils.UtilsDatabase;
+import com.calplus.cmo.utils.UtilsJson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
-import discordbot.logs.DiscordLog;
-import utils.UtilsDatabase;
-import utils.UtilsJson;
 /**
  * Updates the A04_CWLAttackDetails table with attack information from CWL wars.
  * This class is called by A03_CWLWarDetails after fetching war data.

@@ -30,32 +30,45 @@ class DiscordLog {
     }
 
     /**
-     * Loads the Discord bot token and channel ID from the .env file
+     * Loads the Discord bot token and channel ID from .env file
      * @returns {boolean} - True if Discord logging is enabled, false otherwise
      */
     loadConfig() {
-        const envPath = path.resolve(__dirname, '../../../../../.env');
+        // JavaScript runs externally, so load from .env file
+        let configPath = path.resolve(__dirname, '../../../../../.env');
         
-        if (!fs.existsSync(envPath)) {
-            console.error('WARNING: .env file not found. Discord logging disabled.');
-            return false;
+        // Fallback to .env.example if .env doesn't exist
+        if (!fs.existsSync(configPath)) {
+            configPath = path.resolve(__dirname, '../../../../../.env.example');
+            
+            if (!fs.existsSync(configPath)) {
+                console.error('WARNING: .env file not found. Discord logging disabled.');
+                console.error('Please copy .env.example to .env and fill in your values.');
+                return false;
+            }
         }
 
         try {
-            const envContent = fs.readFileSync(envPath, 'utf8');
-            const envLines = envContent.split('\n');
+            const configContent = fs.readFileSync(configPath, 'utf8');
+            const configLines = configContent.split('\n');
             
             const config = {};
-            envLines.forEach(line => {
+            configLines.forEach(line => {
+                // Skip comments and empty lines
+                if (line.trim().startsWith('#') || !line.trim()) {
+                    return;
+                }
+                
                 const [key, ...valueParts] = line.split('=');
                 if (key && valueParts.length > 0) {
                     config[key.trim()] = valueParts.join('=').trim();
                 }
             });
 
-            this.botToken = config.DISCORD_BOT_TOKEN;
-            this.channelId = config.DISCORD_LOG_CHANNELID;
-            this.adminUserId = config.DISCORD_ADMIN_USERID;
+            // Load using .env key format
+            this.botToken = config['DISCORD_BOT_TOKEN'];
+            this.channelId = config['DISCORD_LOG_CHANNELID'];
+            this.adminUserId = config['DISCORD_ADMIN_USERID'];
 
             if (!this.botToken) {
                 console.error('WARNING: DISCORD_BOT_TOKEN not found in .env file. Discord logging disabled.');
@@ -73,7 +86,7 @@ class DiscordLog {
             this.discordApiUrl = `/api/v10/channels/${this.channelId}/messages`;
             return true;
         } catch (error) {
-            console.error(`WARNING: Failed to read .env file. Discord logging disabled. Error: ${error.message}`);
+            console.error(`WARNING: Failed to read configuration file. Discord logging disabled. Error: ${error.message}`);
             return false;
         }
     }
