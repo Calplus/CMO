@@ -13,6 +13,14 @@ class DiscordLog {
         this.messageQueue = [];
         this.isProcessing = false;
         
+        // Batch message handling
+        this.batchBuffer = [];
+        this.batchStartTime = 0;
+        this.batchTimeoutMs = 5000; // 5 seconds
+        
+        // INFO message batching - accumulate INFO logs until a terminal log type (SUCCESS/ERROR/WARNING)
+        this.infoBatchBuffer = [];
+        
         // Add process exit handler to ensure all messages are sent
         if (this.discordEnabled) {
             process.on('exit', () => {
@@ -334,6 +342,10 @@ class DiscordLog {
         }
         
         console.error(formattedMessage);
+        
+        // Flush any accumulated INFO messages before sending error
+        this.flushInfoBatch();
+        
         return await this.queueMessage(formattedMessage);
     }
 
@@ -346,7 +358,11 @@ class DiscordLog {
         const filename = this.getCallerFilename();
         const formattedMessage = this.formatMessage('🟢', 'SUCCESS', message, filename);
         console.log(formattedMessage);
-        return await this.queueMessage(formattedMessage);
+        
+        // Combine accumulated INFO messages with success message
+        const combinedMessage = this.combineInfoBatchWithMessage(formattedMessage);
+        
+        return await this.queueMessage(combinedMessage);
     }
 
     /**
@@ -358,19 +374,166 @@ class DiscordLog {
         const filename = this.getCallerFilename();
         const formattedMessage = this.formatMessage('🟡', 'WARNING', message, filename);
         console.warn(formattedMessage);
-        return await this.queueMessage(formattedMessage);
+        
+        // Combine accumulated INFO messages with warning message
+        const combinedMessage = this.combineInfoBatchWithMessage(formattedMessage);
+        
+        return await this.queueMessage(combinedMessage);
     }
 
     /**
-     * Sends an info log message to the Discord channel
-     * @param {string} message - The info message to send
-     * @returns {Promise<boolean>} - True if successful, false otherwise
+     * Adds an info log message to the INFO batch buffer
+     * INFO messages are accumulated and sent together with the next SUCCESS/ERROR/WARNING message
+     * @param {string} message - The info message to add
+     * @returns {Promise<boolean>} - True (immediately)
      */
     async logInfo(message) {
         const filename = this.getCallerFilename();
         const formattedMessage = this.formatMessage('🔵', 'INFO', message, filename);
         console.log(formattedMessage);
-        return await this.queueMessage(formattedMessage);
+        
+        this.infoBatchBuffer.push(formattedMessage);
+        
+        return true;
+    }
+
+    /**
+     * Flushes any accumulated INFO messages without sending them
+     * (Used internally when error occurs to clear the buffer)
+     */
+    flushInfoBatch() {
+        this.infoBatchBuffer = [];
+    }
+    
+    /**
+     * Combines accumulated INFO messages with a terminal message (SUCCESS/ERROR/WARNING)
+     * and clears the INFO buffer
+     * @param {string} terminalMessage - The terminal message to append
+     * @returns {string} - Combined message with all INFO logs followed by the terminal message
+     */
+    combineInfoBatchWithMessage(terminalMessage) {
+        if (this.infoBatchBuffer.length === 0) {
+            return terminalMessage;
+        }
+        const combined = this.infoBatchBuffer.join('\n') + '\n' + terminalMessage;
+        this.infoBatchBuffer = [];
+        return combined;
+    }
+    
+    /**
+     * Adds a log message to the batch buffer
+     * @param {string} message - The log message to add to batch
+     */
+    batchLog(message) {
+        const filename = this.getCallerFilename();
+        const formattedMessage = this.formatMessage('📝', 'LOG', message, filename);
+        console.log(formattedMessage);
+        this.addToBatch(formattedMessage);
+    }
+
+    /**
+     * Adds an info log message to the batch buffer
+     * @param {string} message - The info message to add to batch
+     */
+    batchInfo(message) {
+        const filename = this.getCallerFilename();
+        const formattedMessage = this.formatMessage('🔵', 'INFO', message, filename);
+        console.log(formattedMessage);
+        this.addToBatch(formattedMessage);
+    }
+
+    /**
+     * Adds a success log message to the batch buffer
+     * @param {string} message - The success message to add to batch
+     */
+    batchSuccess(message) {
+        const filename = this.getCallerFilename();
+        const formattedMessage = this.formatMessage('🟢', 'SUCCESS', message, filename);
+        console.log(formattedMessage);
+        this.addToBatch(formattedMessage);
+    }
+
+    /**
+     * Adds a warning log message to the batch buffer
+     * @param {string} message - The warning message to add to batch
+     */
+    batchWarning(message) {
+        const filename = this.getCallerFilename();
+        const formattedMessage = this.formatMessage('🟡', 'WARNING', message, filename);
+        console.log(formattedMessage);
+        this.addToBatch(formattedMessage);
+    }
+
+    /**
+     * Adds a message to the batch buffer with timeout check
+     * @param {string} formattedMessage - The formatted message to add
+     */
+    addToBatch(formattedMessage) {
+        const isFirstMessage = this.batchBuffer.length === 0;
+        
+        if (isFirstMessage) {
+            this.batchStartTime = Date.now();
+        } else {
+            // Check if batch timeout exceeded
+            const elapsed = Date.now() - this.batchStartTime;
+            if (elapsed >= this.batchTimeoutMs) {
+                // Flush existing batch first
+                this.flushBatchInternal();
+                // Start new batch
+                this.batchStartTime = Date.now();
+            }
+        }
+        
+        this.batchBuffer.push(formattedMessage);
+    }
+
+    /**
+     * Sends all batched messages immediately
+     * @returns {Promise<boolean>} - True if successful, false otherwise
+     */
+    async flushBatch() {
+        return await this.flushBatchInternal();
+    }
+
+    /**
+     * Internal method to flush batch
+     * @returns {Promise<boolean>} - True if successful, false otherwise
+     */
+    async flushBatchInternal() {
+        if (this.batchBuffer.length === 0) {
+            return true;
+        }
+        
+        const batchContent = this.batchBuffer.join('\n');
+        this.batchBuffer = [];
+        this.batchStartTime = 0;
+        
+        const DISCORD_CHARACTER_LIMIT = 2000;
+        
+        // Split message if it exceeds Discord's character limit
+        if (batchContent.length <= DISCORD_CHARACTER_LIMIT) {
+            return await this.queueMessage(batchContent);
+        } else {
+            // Split into chunks
+            let result = true;
+            let start = 0;
+            while (start < batchContent.length) {
+                let end = Math.min(start + DISCORD_CHARACTER_LIMIT, batchContent.length);
+                
+                // Try to split at newline if possible
+                if (end < batchContent.length) {
+                    const lastNewline = batchContent.lastIndexOf('\n', end);
+                    if (lastNewline > start) {
+                        end = lastNewline;
+                    }
+                }
+                
+                const chunk = batchContent.substring(start, end);
+                result = result && await this.queueMessage(chunk);
+                start = end + (end < batchContent.length && batchContent.charAt(end) === '\n' ? 1 : 0);
+            }
+            return result;
+        }
     }
 }
 
