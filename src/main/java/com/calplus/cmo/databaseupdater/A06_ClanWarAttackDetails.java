@@ -242,6 +242,39 @@ public class A06_ClanWarAttackDetails {
     }
     
     /**
+     * Finds the cwSeason of an ongoing war in A06 that's not yet in A05
+     * This helps identify if the current ongoing war has already been logged to A06
+     * @param season The season to check for (e.g., "2026-01")
+     * @return The cwSeason of the ongoing war, or null if not found
+     */
+    private String findOngoingWarInA06(String season) throws SQLException {
+        String url = UtilsDatabase.getConnectionUrl(dbName);
+        
+        // Find wars in A06 for this season that are NOT in A05 (ongoing wars)
+        // Return the cwSeason of the most recent one
+        String sql = "SELECT DISTINCT a6.cwSeason FROM " + TABLE_NAME + " a6 " +
+                     "WHERE a6.cwSeason LIKE ? " +
+                     "AND NOT EXISTS (" +
+                     "  SELECT 1 FROM A05_ClanWarLog a5 " +
+                     "  WHERE a5.cwSeason = a6.cwSeason" +
+                     ") " +
+                     "ORDER BY a6.id DESC LIMIT 1";
+        
+        try (Connection conn = DriverManager.getConnection(url);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, season + "%");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("cwSeason");
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
      * Calculates cwSeason independently for ongoing wars not yet in A05
      * This is used when the current war hasn't ended yet and isn't in the war log
      * @param endTime The endTime from the war data
@@ -274,6 +307,17 @@ public class A06_ClanWarAttackDetails {
             season = yearMonth.substring(0, 4) + "-" + yearMonth.substring(4, 6);
         }
         
+        // CRITICAL FIX: Check if there's already an ongoing war in A06 for this season
+        // This prevents creating duplicate rows when A05 runs multiple times for the same war
+        String ongoingWarCwSeason = findOngoingWarInA06(season);
+        if (ongoingWarCwSeason != null) {
+            String infoMsg = "Found existing ongoing war in A06: " + ongoingWarCwSeason + ". Reusing cwSeason to prevent duplicates.";
+            System.out.println(infoMsg);
+            discordLogger.logInfo(infoMsg);
+            return ongoingWarCwSeason;
+        }
+        
+        // No ongoing war found, calculate new cwSeason
         // Check last war in A06 database to determine next ID
         WarInfo lastWar = getLastWarInfo();
         
@@ -285,17 +329,29 @@ public class A06_ClanWarAttackDetails {
                 
                 if (lastSeason.equals(season)) {
                     // Same season, increment ID
-                    return season + "-" + (lastId + 1);
+                    String newCwSeason = season + "-" + (lastId + 1);
+                    String infoMsg = "Calculated new cwSeason for ongoing war: " + newCwSeason;
+                    System.out.println(infoMsg);
+                    discordLogger.logInfo(infoMsg);
+                    return newCwSeason;
                 } else {
                     // New season, start from 1
-                    return season + "-1";
+                    String newCwSeason = season + "-1";
+                    String infoMsg = "Calculated new cwSeason for new season: " + newCwSeason;
+                    System.out.println(infoMsg);
+                    discordLogger.logInfo(infoMsg);
+                    return newCwSeason;
                 }
             }
         }
         
         // No previous wars, use config cwSeasonId or start from 1
         int startId = (cwSeasonId != null) ? cwSeasonId : 1;
-        return season + "-" + startId;
+        String newCwSeason = season + "-" + startId;
+        String infoMsg = "Calculated initial cwSeason for ongoing war: " + newCwSeason;
+        System.out.println(infoMsg);
+        discordLogger.logInfo(infoMsg);
+        return newCwSeason;
     }
     
     /**
@@ -373,7 +429,7 @@ public class A06_ClanWarAttackDetails {
         Integer defenseDuration;
         
         // Scores
-        Double attacksUsed;
+        Integer attacksUsed;
         Double totalWarScore;
     }
     
@@ -535,7 +591,7 @@ public class A06_ClanWarAttackDetails {
                     player.attack1ThModifier = thModifier;
                     
                     // Calculate war score for this attack (without attacksUsed modifier yet)
-                    double attackScore = starsPercentQuality * thModifier;
+                    double attackScore = Math.min(starsPercentQuality * thModifier, 100);
                     totalScore += attackScore;
                 }
             }
@@ -560,17 +616,21 @@ public class A06_ClanWarAttackDetails {
                     player.attack2ThModifier = thModifier;
                     
                     // Calculate war score for this attack (without attacksUsed modifier yet)
-                    double attackScore = starsPercentQuality * thModifier;
+                    double attackScore = Math.min(starsPercentQuality * thModifier, 100);
                     totalScore += attackScore;
                 }
             }
+
+            player.attacksUsed = attacksUsed;
             
             // Calculate attacks used modifier (based on number of attacks: 0, 1, or 2)
             double attacksUsedModifier = CalcWarQuality.calculateAttacksUsedModifier(attacksUsed);
-            player.attacksUsed = (double) attacksUsed;
+            
             
             // Calculate total war score: sum of attack scores * attacksUsed modifier
-            player.totalWarScore = totalScore * attacksUsedModifier;
+            double avgWarScore = totalScore / attacksUsed;
+            double totalWarScore = CalcWarQuality.calculateWarScore(avgWarScore, attacksUsedModifier);
+            player.totalWarScore = totalWarScore;
         }
     }
     

@@ -61,7 +61,7 @@ public class CalcWarQuality {
      * @return Calculated TH modifier
      */
     public static double calculateThModifier(int thLevel, int oppThLevel) {
-        int thDiff = thLevel - oppThLevel;
+        int thDiff = oppThLevel - thLevel;
         switch (thDiff) {
             case 2:
                 return 1.25;
@@ -93,7 +93,7 @@ public class CalcWarQuality {
      * @return Calculated CWL TH modifier
      */
     public static double calculateCwlThModifier(int thLevel, int oppThLevel) {
-        int thDiff = thLevel - oppThLevel;
+        int thDiff = oppThLevel - thLevel;
         switch (thDiff) {
             case 3:
                 return 1.55;
@@ -192,8 +192,8 @@ public class CalcWarQuality {
      * @param attacksUsedModifier Attacks used modifier
      * @return Final war score
      */
-    public static double calculateWarScore (double starsPctQuality, double thModifier, double attacksUsedModifier) {
-        return starsPctQuality * thModifier * attacksUsedModifier;
+    public static double calculateWarScore (double avgWarScore, double attacksUsedModifier) {
+        return avgWarScore * attacksUsedModifier;
     }
 
 
@@ -207,11 +207,11 @@ public class CalcWarQuality {
      * @param isMirrorCheckEnabled Whether mirror check is enabled
      * @return Final CWL war score
      */
-    public static double calculateCwlWarScore (double starsPctQuality, double thModifier, double attacksUsedModifier, double mirrorCheckModifier, boolean isMirrorCheckEnabled) {
+    public static double calculateCwlWarScore (double avgWarScore, double attacksUsedModifier, double mirrorCheckModifier, boolean isMirrorCheckEnabled) {
         if (!isMirrorCheckEnabled) {
-            return starsPctQuality * thModifier * attacksUsedModifier;
+            return avgWarScore * attacksUsedModifier;
         }
 
-        return starsPctQuality * thModifier * attacksUsedModifier * mirrorCheckModifier;
+        return avgWarScore * attacksUsedModifier * mirrorCheckModifier;
     }
 }

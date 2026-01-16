@@ -601,7 +601,7 @@ function tableInfo(db) {
             { name: 'defenseDuration', type: 'INTEGER' },
 
             // Scores
-            { name: 'attacksUsed', type: 'REAL' },
+            { name: 'attacksUsed', type: 'INTEGER' },
             { name: 'totalWarScore', type: 'REAL' }
         ],
         ['dateLogged', 'cwSeason', 'attackerTag']
