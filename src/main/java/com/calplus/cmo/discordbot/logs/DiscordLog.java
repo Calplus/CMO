@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Reacts to Discord rate limits (429) with retry_after delays.
  */
 public class DiscordLog {
+    // Discord API content limit: 2000 characters per message
     private static final int DISCORD_CHARACTER_LIMIT = 2000;
     private static final long BATCH_TIMEOUT_MS = 5000; // 5 seconds
     
@@ -115,7 +116,7 @@ public class DiscordLog {
             // Skip Thread, DiscordLog, and internal classes
             if (fileName != null && 
                 !className.equals("java.lang.Thread") &&
-                !className.equals("discordbot.logs.DiscordLog") &&
+                !className.equals("com.calplus.cmo.discordbot.logs.DiscordLog") &&
                 !className.startsWith("java.") &&
                 !className.startsWith("sun.")) {
                 return fileName;
@@ -305,6 +306,43 @@ public class DiscordLog {
     }
 
     /**
+     * Queues a message, splitting into multiple chunks if it exceeds Discord's content limit.
+     * Tries to split at newline boundaries when possible.
+     * @param content Full message content to send
+     * @return CompletableFuture that resolves to true if all chunks are sent successfully
+     */
+    private CompletableFuture<Boolean> queueLongMessage(String content) {
+        if (content == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+
+        if (content.length() <= DISCORD_CHARACTER_LIMIT) {
+            return queueMessage(content);
+        }
+
+        CompletableFuture<Boolean> result = CompletableFuture.completedFuture(true);
+        int start = 0;
+        while (start < content.length()) {
+            int end = Math.min(start + DISCORD_CHARACTER_LIMIT, content.length());
+
+            // Prefer splitting at a newline for readability
+            if (end < content.length()) {
+                int lastNewline = content.lastIndexOf('\n', end);
+                if (lastNewline > start) {
+                    end = lastNewline;
+                }
+            }
+
+            String chunk = content.substring(start, end);
+            result = result.thenCompose(success -> queueMessage(chunk));
+
+            // Advance pointer, skip trailing newline if we split on it
+            start = end + (end < content.length() && content.charAt(end) == '\n' ? 1 : 0);
+        }
+        return result;
+    }
+
+    /**
      * Sends a log message with timestamp to the Discord channel
      * @param message The log message to send
      * @return CompletableFuture that resolves to true if successful, false otherwise
@@ -313,7 +351,7 @@ public class DiscordLog {
         String filename = getCallerFilename();
         String formattedMessage = formatMessage("📝", "LOG", message, filename);
         System.out.println(formattedMessage);
-        return queueMessage(formattedMessage);
+        return queueLongMessage(formattedMessage);
     }
 
     /**
@@ -335,7 +373,7 @@ public class DiscordLog {
         // Flush any accumulated INFO messages before sending error
         flushInfoBatch();
         
-        return queueMessage(formattedMessage);
+        return queueLongMessage(formattedMessage);
     }
 
     /**
@@ -351,7 +389,7 @@ public class DiscordLog {
         // Combine accumulated INFO messages with success message
         String combinedMessage = combineInfoBatchWithMessage(formattedMessage);
         
-        return queueMessage(combinedMessage);
+        return queueLongMessage(combinedMessage);
     }
 
     /**
@@ -367,7 +405,7 @@ public class DiscordLog {
         // Combine accumulated INFO messages with warning message
         String combinedMessage = combineInfoBatchWithMessage(formattedMessage);
         
-        return queueMessage(combinedMessage);
+        return queueLongMessage(combinedMessage);
     }
 
     /**

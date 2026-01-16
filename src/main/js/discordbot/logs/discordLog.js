@@ -114,10 +114,11 @@ class DiscordLog {
             const caller = stack[i];
             const fileName = caller.getFileName();
             
-            // Skip internal Node.js modules, this file, and async wrappers
+            // Skip internal Node.js modules, this file (both names), and async wrappers
             if (fileName && 
                 !fileName.includes('node:') && 
                 !fileName.includes('discordLog.js') &&
+                !fileName.includes('DiscordLog.js') &&
                 !fileName.includes('internal/')) {
                 return path.basename(fileName);
             }
@@ -508,6 +509,7 @@ class DiscordLog {
         this.batchBuffer = [];
         this.batchStartTime = 0;
         
+        // Discord API content limit: 2000 characters per message
         const DISCORD_CHARACTER_LIMIT = 2000;
         
         // Split message if it exceeds Discord's character limit

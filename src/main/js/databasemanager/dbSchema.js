@@ -561,6 +561,7 @@ function tableInfo(db) {
             // Player Details
             { name: 'attackerTag', type: 'TEXT' },
             { name: 'attackerName', type: 'TEXT' },
+            { name: 'attackerClanTag', type: 'TEXT' },
             { name: 'attackerThLevel', type: 'INTEGER' },
             { name: 'attackerMapPosition', type: 'INTEGER' },
 

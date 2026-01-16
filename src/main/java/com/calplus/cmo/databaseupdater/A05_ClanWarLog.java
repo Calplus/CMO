@@ -693,8 +693,17 @@ public class A05_ClanWarLog {
         
         A05_ClanWarLog updater = null;
         try {
+            // Update A05_ClanWarLog
             updater = new A05_ClanWarLog(dbName);
             updater.updateDatabase();
+            
+            // Update A06_ClanWarAttackDetails after A05 completes
+            String infoMsg = "Starting A06_ClanWarAttackDetails update...";
+            System.out.println(infoMsg);
+            updater.discordLogger.logInfo(infoMsg);
+            
+            A06_ClanWarAttackDetails attackDetailsUpdater = new A06_ClanWarAttackDetails(dbName);
+            attackDetailsUpdater.updateDatabase();
             
             // Ensure all Discord messages are sent
             updater.discordLogger.flush();
